@@ -3,8 +3,12 @@
 # See github page to report issues or contribute:
 # https://github.com/ntsp/anki-addons
 
+from PyQt4 import QtCore, QtGui
+
+from aqt.forms.browser import Ui_Dialog
 from anki.hooks import wrap
 from aqt.browser import DataModel
+
 
 ignorables = [
 # Always ignore
@@ -35,11 +39,31 @@ u'\u08FA', u'\u0670']
 def my_search(self, txt, reset=True):
     if reset:
         self.beginReset()
-    txt = ''.join([s for s in txt if s not in ignorables])
+
+    if self.browser.form.toggleButton.isChecked():
+        txt = ''.join([s for s in txt if s not in ignorables])
+
     self.cards = []
     self.cards = self.col.findCards(txt, order=True)
 
     if reset:
         self.endReset()
+
+def my_setupUi(self, mw):
+  
+    # Remove existing elements from the grid layout
+    while self.gridLayout.count():
+        item = self.gridLayout.takeAt(0)
+
+    self.toggleButton = QtGui.QCheckBox(self.widget)
+    self.toggleLabel = QtGui.QLabel("Strip Arabic\n Diacritics")
     
+    # Put them back in in the order that we want, plus our own
+    self.gridLayout.addWidget(self.searchEdit, 0, 0, 1, 1)
+    self.gridLayout.addWidget(self.toggleButton, 0, 1, 1, 1)
+    self.gridLayout.addWidget(self.toggleLabel, 0, 2, 1, 1)
+    self.gridLayout.addWidget(self.searchButton, 0, 3, 1, 1)
+       
+
 DataModel.search = my_search
+Ui_Dialog.setupUi= wrap(Ui_Dialog.setupUi, my_setupUi)
