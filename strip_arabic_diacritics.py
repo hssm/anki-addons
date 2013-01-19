@@ -8,7 +8,9 @@ from PyQt4 import QtCore, QtGui
 from aqt.forms.browser import Ui_Dialog
 from anki.hooks import wrap
 from aqt.browser import DataModel
-
+from anki.find import Finder
+from aqt import mw
+from aqt import *
 
 ignorables = [
 # Always ignore
@@ -21,7 +23,7 @@ u'\u06D7', u'\u06D8', u'\u06D9', u'\u06DA', u'\u06DB', u'\u06DC', u'\u06DD',
 u'\u06DE', u'\u06DF', u'\u06E0', u'\u06E1', u'\u06E2', u'\u06E3', u'\u06E4',
 u'\u06E7', u'\u06E8', u'\u06E9', u'\u06EA', u'\u06EB', u'\u06EC', u'\u06ED',
 
-# Ignore as secondary
+# Secondary
 u'\u064B', u'\uFE71', u'\uFE70', u'\u08F0', u'\u08E7', u'\u064C', u'\uFE72',
 u'\uFC5E', u'\u08F1', u'\u08E8', u'\u064D', u'\uFE74', u'\uFC5F', u'\u08F2',
 u'\u08E9', u'\u064E', u'\uFE77', u'\uFE76', u'\uFCF2', u'\uFC60', u'\u08E4',
@@ -33,37 +35,74 @@ u'\u0657', u'\u0658', u'\u0659', u'\u065A', u'\u065B', u'\u065C', u'\u065D',
 u'\u065E', u'\u08F7', u'\u08F8', u'\u08FD', u'\u08FB', u'\u08FC', u'\u08F9',
 u'\u08FA', u'\u0670']
 
-# Note: the currect algorithm strips secondary codepoints regardless of the
-# preceding character. This is likely to be sufficient for this add-on.
+# Note: the current algorithm strips secondary code points regardless of the
+# preceding code point. This is likely to be sufficient for this add-on.
 
-def my_search(self, txt, reset=True):
+def stripArabic(txt):
+    """Return txt excluding ignorable Arabic diacritics."""
+    
+    return ''.join(s for s in txt if s not in ignorables)
+
+
+def mySearch(self, txt, reset=True):
+    """Overriding browser.py -> DataModel.Search. Do a search using custom
+    methods if the Arabic diacritics checkbox is checked."""
+    
     if reset:
         self.beginReset()
 
-    if self.browser.form.toggleButton.isChecked():
-        txt = ''.join([s for s in txt if s not in ignorables])
+    # NOTE: Only override the finder function on the click of the browser's
+    # "search" button since this function is used elsewhere. We restore
+    # it to the original one after we do our search.
+    origFindText = Finder._findText 
+    if self.browser.form.arToggleButton.isChecked():
+        Finder._findText = myFindText
+        txt = stripArabic(txt)
 
     self.cards = []
     self.cards = self.col.findCards(txt, order=True)
 
     if reset:
         self.endReset()
+    
+    # Put back original functions after search
+    Finder._findText = origFindText
 
-def my_setupUi(self, mw):
-  
+
+def myFindText(self, val, args):
+    """Build a custom SQL query to invoke a function to strip Arabic
+    diacritics from the search space."""
+    
+    val = val.replace("*", "%")
+    args.append("%"+val+"%")
+    args.append("%"+val+"%")
+    
+    # NOTE: the "?" is assumed to be stripped already.
+    return "(stripArabic(n.sfld) like ? escape '\\' or "\
+            "stripArabic(n.flds) like ? escape '\\')"
+
+   
+def mySetupUi(self, mw):
+    """Add new items to the browser UI to allow toggling the add-on."""
+    
+    # Surely there's a better place for this ! 
+    # Create a new SQL function that we can use in our queries.
+    mw.col.db._db.create_function("stripArabic", 1, stripArabic)
+
+    # Our UI stuff
+    self.arToggleButton = QtGui.QCheckBox(self.widget)
+    self.arToggleLabel = QtGui.QLabel("Strip Arabic\n Diacritics")
+
     # Remove existing elements from the grid layout
     while self.gridLayout.count():
-        item = self.gridLayout.takeAt(0)
-
-    self.toggleButton = QtGui.QCheckBox(self.widget)
-    self.toggleLabel = QtGui.QLabel("Strip Arabic\n Diacritics")
+        self.gridLayout.takeAt(0)
     
     # Put them back in in the order that we want, plus our own
     self.gridLayout.addWidget(self.searchEdit, 0, 0, 1, 1)
-    self.gridLayout.addWidget(self.toggleButton, 0, 1, 1, 1)
-    self.gridLayout.addWidget(self.toggleLabel, 0, 2, 1, 1)
+    self.gridLayout.addWidget(self.arToggleButton, 0, 1, 1, 1)
+    self.gridLayout.addWidget(self.arToggleLabel, 0, 2, 1, 1)
     self.gridLayout.addWidget(self.searchButton, 0, 3, 1, 1)
-       
+    
 
-DataModel.search = my_search
-Ui_Dialog.setupUi= wrap(Ui_Dialog.setupUi, my_setupUi)
+Ui_Dialog.setupUi= wrap(Ui_Dialog.setupUi, mySetupUi)
+DataModel.search = mySearch
