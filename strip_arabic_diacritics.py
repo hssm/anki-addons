@@ -12,6 +12,10 @@ from anki.find import Finder
 from aqt import mw
 from aqt import *
 
+import time
+
+# Note: the current algorithm strips secondary code points regardless of the
+# preceding code point. This is likely to be sufficient for this add-on.
 ignorables = [
 # Always ignore
 u'\u0600', u'\u0601', u'\u0602', u'\u0603', u'\u0604', u'\u0606', u'\u0607',
@@ -35,13 +39,13 @@ u'\u0657', u'\u0658', u'\u0659', u'\u065A', u'\u065B', u'\u065C', u'\u065D',
 u'\u065E', u'\u08F7', u'\u08F8', u'\u08FD', u'\u08FB', u'\u08FC', u'\u08F9',
 u'\u08FA', u'\u0670']
 
-# Note: the current algorithm strips secondary code points regardless of the
-# preceding code point. This is likely to be sufficient for this add-on.
+
+translationTable = dict.fromkeys(map(ord, ignorables), None)
+
 
 def stripArabic(txt):
     """Return txt excluding ignorable Arabic diacritics."""
-    
-    return ''.join(s for s in txt if s not in ignorables)
+    return txt.translate(translationTable)
 
 
 def mySearch(self, txt, reset=True):
@@ -50,7 +54,8 @@ def mySearch(self, txt, reset=True):
     
     if reset:
         self.beginReset()
-
+    
+    t = time.time()
     # NOTE: Only override the finder function on the click of the browser's
     # "search" button since this function is used elsewhere. We restore
     # it to the original one after we do our search.
@@ -61,11 +66,11 @@ def mySearch(self, txt, reset=True):
 
     self.cards = []
     self.cards = self.col.findCards(txt, order=True)
-
+    print "fetch cards in %dms" % ((time.time() - t)*1000)
     if reset:
         self.endReset()
     
-    # Put back original functions after search
+    # Put back original function after search
     Finder._findText = origFindText
 
 
