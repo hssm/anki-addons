@@ -43,7 +43,6 @@ u'\u08FA', u'\u0670']
 
 translationTable = dict.fromkeys(map(ord, ignorables), None)
 
-
 def stripArabic(txt):
     """Return txt excluding ignorable Arabic diacritics."""
     return txt.translate(translationTable)
@@ -52,7 +51,7 @@ def stripArabic(txt):
 def mySearch(self, txt, reset=True):
     """Overriding browser.py -> DataModel.Search. Do a search using custom
     methods if the Arabic diacritics checkbox is checked."""
-    
+
     if reset:
         self.beginReset()
     
@@ -67,12 +66,12 @@ def mySearch(self, txt, reset=True):
     self.cards = []
     self.cards = self.col.findCards(txt, order=True)
 
+    # Put back original function after search
+    Finder._findText = origFindText
+    
     if reset:
         self.endReset()
     
-    # Put back original function after search
-    Finder._findText = origFindText
-
 
 def myFindText(self, val, args):
     """Build a custom SQL query to invoke a function to strip Arabic
@@ -81,9 +80,9 @@ def myFindText(self, val, args):
     val = val.replace("*", "%")
     args.append("%"+val+"%")
     args.append("%"+val+"%")
-    
+
     # NOTE: the "?" is assumed to be stripped already.
-    return "(stripArabic(n.sfld) like ? escape '\\' or "\
+    return "(n.sfld like ? escape '\\' or "\
             "stripArabic(n.flds) like ? escape '\\')"
 
    
