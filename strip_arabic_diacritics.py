@@ -3,16 +3,17 @@
 # See github page to report issues or contribute:
 # https://github.com/ntsp/anki-addons
 
+import time
+
 from PyQt4 import QtCore, QtGui
 
-from aqt.forms.browser import Ui_Dialog
-from anki.hooks import wrap
-from aqt.browser import DataModel
-from anki.find import Finder
 from aqt import mw
 from aqt import *
+from aqt.browser import DataModel
+from aqt.forms.browser import Ui_Dialog
+from anki.hooks import wrap
+from anki.find import Finder
 
-import time
 
 # Note: the current algorithm strips secondary code points regardless of the
 # preceding code point. This is likely to be sufficient for this add-on.
@@ -55,7 +56,6 @@ def mySearch(self, txt, reset=True):
     if reset:
         self.beginReset()
     
-    t = time.time()
     # NOTE: Only override the finder function on the click of the browser's
     # "search" button since this function is used elsewhere. We restore
     # it to the original one after we do our search.
@@ -66,7 +66,7 @@ def mySearch(self, txt, reset=True):
 
     self.cards = []
     self.cards = self.col.findCards(txt, order=True)
-    print "fetch cards in %dms" % ((time.time() - t)*1000)
+
     if reset:
         self.endReset()
     
