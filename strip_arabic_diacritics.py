@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.0
+# Version: 1.1
 # See github page to report issues or contribute:
 # https://github.com/ntsp/anki-addons
 
