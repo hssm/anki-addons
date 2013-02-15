@@ -1,4 +1,8 @@
-anki-addons
-===========
+This is a repository for my small Anki add-ons. Larger add-ons will get their own repos.
 
-All my small (mostly one file) add-ons for Anki.
+---
+
+##Strip Arabic Diacritics###
+[Link to add-on](https://ankiweb.net/shared/info/1924690148)
+
+Ignore "optional" diacritical marks in Arabic text when searching in the card browser and match only against the base characters. This allows you to enter words without any vocalizations but still find them in your deck if they do use them. Since Arabic learning materials typically do use vocalizations (which can become quite convoluted), this feature can be very convenient for a student of Arabic using Anki.
