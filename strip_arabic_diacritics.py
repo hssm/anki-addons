@@ -14,6 +14,7 @@ from aqt.forms.browser import Ui_Dialog
 from anki.hooks import wrap
 from anki.find import Finder
 
+CONF_KEY_CHECKED = 'strip_ar_diac_checked'
 
 # Note: the current algorithm strips secondary code points regardless of the
 # preceding code point. This is likely to be sufficient for this add-on.
@@ -96,7 +97,13 @@ def mySetupUi(self, mw):
     # Our UI stuff
     self.arToggleButton = QtGui.QCheckBox(self.widget)
     self.arToggleLabel = QtGui.QLabel("Strip Arabic\n Diacritics")
+    
+    # Initial checked state is what we had saved previously
+    self.arToggleButton.setCheckState(mw.col.conf.get(CONF_KEY_CHECKED, 0))
 
+    # Save state on toggle
+    mw.connect(self.arToggleButton, SIGNAL("stateChanged(int)"), onChecked)
+    
     # Remove existing elements from the grid layout
     while self.gridLayout.count():
         self.gridLayout.takeAt(0)
@@ -107,6 +114,9 @@ def mySetupUi(self, mw):
     self.gridLayout.addWidget(self.arToggleLabel, 0, 2, 1, 1)
     self.gridLayout.addWidget(self.searchButton, 0, 3, 1, 1)
     
+def onChecked(state):
+    """Save the checked state in Anki's configuration."""
+    mw.col.conf[CONF_KEY_CHECKED] = state
 
 Ui_Dialog.setupUi= wrap(Ui_Dialog.setupUi, mySetupUi)
 DataModel.search = mySearch
