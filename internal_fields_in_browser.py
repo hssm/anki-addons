@@ -5,11 +5,14 @@
 
 from operator import itemgetter
 import time
+
 from aqt import mw
 from aqt.browser import DataModel, Browser
-from anki.hooks import wrap, addHook
+from anki.hooks import wrap
+from anki.find import Finder
 
 origColumnData = DataModel.columnData
+orig_order = Finder._order
 
 def myColumnData(self, index):
     returned = origColumnData(self, index)
@@ -90,7 +93,59 @@ def mySetupColumns(self):
                         ('cfirst', _("First review")),
                         ('clatest', _("Latest review")),
                         ])
-    self.columns.sort(key=itemgetter(1))
+
+
+def my_order(self, order):
+    if not order:
+        return "", False
+    elif order is not True:
+        # custom order string provided
+        return " order by " + order, False
+    # use deck default
+    type = self.col.conf['sortType']
+    sort = None
+    
+    if type == "nid":
+        sort = "n.id"
+    if type == "nguid":
+        return "", False # nahh not gonna sort this
+    elif type == "nmid":
+        sort = "n.mid"
+    elif type == "nusn":
+        sort = "n.usn"
+    elif type == "ntags":
+        sort = "n.tags"
+    elif type == "nfields":
+        return "", False # or this
+    elif type == "nflags":
+        sort = "n.flags"
+    elif type == "ndata":
+        sort = "n.data"
+    elif type == "cid":
+        sort = "c.id"
+    elif type == "cord":
+        sort = "c.ord"
+    elif type == "cusn":
+        sort = "c.usn"
+    elif type == "ctype":
+        sort = "c.type"
+    elif type == "cqueue":
+        sort = "c.queue"
+    elif type == "cleft":
+        sort = "c.left"
+    elif type == "codue":
+        sort = "c.odue"
+    elif type == "cflags":
+        sort = "c.flags"
+    elif type == "cfirst":
+        sort = "(select min(id) from revlog where cid = c.id)"
+    elif type == "clatest":
+        sort = "(select max(id) from revlog where cid = c.id)"
+    
+    if not sort:
+        return orig_order(self, order)
+    return " order by " + sort, self.col.conf['sortBackwards']
 
 DataModel.columnData = myColumnData
 Browser.setupColumns = wrap(Browser.setupColumns, mySetupColumns)
+Finder._order = my_order
