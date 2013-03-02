@@ -5,27 +5,28 @@
 
 from operator import itemgetter
 import time
-
 from aqt import mw
-from aqt import *
 from aqt.browser import DataModel, Browser
 from anki.hooks import wrap, addHook
 
 origColumnData = DataModel.columnData
 
 def myColumnData(self, index):
+    returned = origColumnData(self, index)
+    if returned:
+        return returned
+    
     col = index.column()
     type = self.columnType(col)
     c = self.getCard(index)
     n = c.note()
+    # Notes
     if type == "nid":
         return n.id
     elif type == "nguid":
         return n.guid
     elif type == "nmid":
         return n.mid
-    elif type == "nmod":
-        return time.strftime("%Y-%m-%d", time.localtime(n.mod))
     elif type == "nusn":
         return n.usn
     elif type == "ntags":
@@ -36,11 +37,35 @@ def myColumnData(self, index):
         return n.flags
     elif type == "ndata":
         return n.data
-    
+    # Cards
     elif type == "cid":
         return c.id
-    else:
-        return origColumnData(self, index)
+    elif type == "cord":
+        return c.ord
+    elif type == "cusn":
+        return c.usn
+    elif type == "ctype":
+        return c.type
+    elif type == "cqueue":
+        return c.queue
+    elif type == "cleft":
+        return c.left
+    elif type == "codue":
+        return c.odue
+    elif type == "cflags":
+        return c.flags
+    elif type == "cfirst":
+        first = mw.col.db.scalar(
+            "select min(id) from revlog where cid = ?", c.id)
+        if first:
+            first = first / 1000
+            return time.strftime("%Y-%m-%d", time.localtime(first))
+    elif type == "clatest":
+        last = mw.col.db.scalar(
+            "select max(id) from revlog where cid = ?", c.id)
+        if last:
+            last = last / 1000
+            return time.strftime("%Y-%m-%d", time.localtime(last))
 
 
 def mySetupColumns(self):
@@ -48,14 +73,22 @@ def mySetupColumns(self):
                         [('nid', _("Note ID")),
                         ('nguid', _("Note guid")),
                         ('nmid', _("Note mid")),
-                        ('nmod', _("Note mod")),
                         ('nusn', _("Note usn")),
-                        ('ntags', _("Tags")),
-                        ('nfields', _("Fields")),
-                        ('nflags', _("Flags")),
+                        ('ntags', _("Note tags")),
+                        ('nfields', _("Note fields")),
+                        ('nflags', _("Note flags")),
                         ('ndata', _("Note data")),
                         # Cards
                         ('cid', _("Card ID")),
+                        ('cord', _("Card order")),
+                        ('cusn', _("Card usn")),
+                        ('ctype', _("Card type")),
+                        ('cqueue', _("Card queue")),
+                        ('cleft', _("Card left")),
+                        ('codue', _("Card odue")),
+                        ('cflags', _("Card flags")),
+                        ('cfirst', _("First review")),
+                        ('clatest', _("Latest review")),
                         ])
     self.columns.sort(key=itemgetter(1))
 
