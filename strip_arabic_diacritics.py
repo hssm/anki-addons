@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.2
+# Version: 1.3
 # See github page to report issues or contribute:
 # https://github.com/ntsp/anki-addons
 
@@ -59,9 +59,10 @@ def mySearch(self, txt, reset=True):
     # NOTE: Only override the finder function on the click of the browser's
     # "search" button since this function is used elsewhere. We restore
     # it to the original one after we do our search.
-    origFindText = Finder._findText 
+    origFindText = Finder._findText
     if self.browser.form.arToggleButton.isChecked():
         Finder._findText = myFindText
+        txt = unicode(txt)
         txt = stripArabic(txt)
 
     self.cards = []
