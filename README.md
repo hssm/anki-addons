@@ -1,5 +1,5 @@
 This is a repository for my small Anki add-ons. Larger add-ons will get their own repos.
-
+All code in this repository is GPLv3.
 ---
 
 ##Strip Arabic Diacritics###
