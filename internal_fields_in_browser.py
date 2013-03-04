@@ -162,7 +162,8 @@ def myDataModel__init__(self, browser):
     sortType = mw.col.conf['sortType']
     validSortType = False
     
-    custCols = mw.col.conf[CONF_KEY_CUSTOM_COLS]
+    custCols = mw.col.conf.get(CONF_KEY_CUSTOM_COLS, [])
+    
     for custCol in custCols:
         for type, name in _customColumns:
             if custCol == type:
