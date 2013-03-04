@@ -13,7 +13,7 @@ Ignore "optional" diacritical marks in Arabic text when searching in the card br
 
 
 ##Internal Fields in Browser
-[Link to add-on](https://ankiweb.net/shared/info/2681665714)
+[Link to add-on](https://ankiweb.net/shared/info/2255035103)
 
 ![IFIB](https://raw.github.com/ntsp/anki-addons/master/docs/ifib.png "Internal fields in card browser")
 
