@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Version: 1.0
+# Version: 1.1
 # See github page to report issues or to contribute:
-# https://github.com/ntsp/anki-addons
+# https://github.com/hssm/anki-addons
 
 from operator import itemgetter
 import time
@@ -36,7 +36,7 @@ _customColumns = [# Notes
                 ('cflags', "Card flags"),
                 ('cfirst', "First review"),
                 ('clast', "Latest review"),
-                ('catime', "Ans Time"),
+                ('catime', "Answer Time"),
                 ]
 
 def myColumnData(self, index):

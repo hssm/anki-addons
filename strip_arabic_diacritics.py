@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Version: 1.3
 # See github page to report issues or contribute:
-# https://github.com/ntsp/anki-addons
+# https://github.com/hssm/anki-addons
 
 import time
 
