@@ -36,6 +36,7 @@ _customColumns = [# Notes
                 ('cflags', "Card flags"),
                 ('cfirst', "First review"),
                 ('clast', "Latest review"),
+                ('catime', "Ans Time"),
                 ]
 
 def myColumnData(self, index):
@@ -93,7 +94,12 @@ def myColumnData(self, index):
         if last:
             last = last / 1000
             return time.strftime("%Y-%m-%d", time.localtime(last))
-
+    elif type == "catime":
+        atime = mw.col.db.scalar(
+            "select avg(time) from revlog where cid = ?", c.id)
+        if atime:
+            return round(atime / 1000)
+            
 
 def my_order(self, order):
     if not order:
@@ -141,7 +147,9 @@ def my_order(self, order):
         sort = "(select min(id) from revlog where cid = c.id)"
     elif type == "clast":
         sort = "(select max(id) from revlog where cid = c.id)"
-    
+    elif type == "catime":
+        sort = "(select avg(time) from revlog where cid = c.id)"
+
     if not sort:
         return orig_order(self, order)
     return " order by " + sort, self.col.conf['sortBackwards']
