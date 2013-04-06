@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.1
+# Version: 1.2
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
@@ -27,6 +27,8 @@ _customColumns = [# Notes
                 ('ndata', "Note data"),
                 # Cards
                 ('cid', "Card ID"),
+                ('cdid', "Card did"),
+                ('codid', "Card odid"),
                 ('cord', "Card order"),
                 ('cusn', "Card usn"),
                 ('ctype', "Card type"),
@@ -68,6 +70,10 @@ def myColumnData(self, index):
     # Cards
     elif type == "cid":
         return c.id
+    elif type == "cdid":
+        return c.did
+    elif type == "codid":
+        return c.odid
     elif type == "cord":
         return c.ord
     elif type == "cusn":
@@ -129,6 +135,10 @@ def my_order(self, order):
         sort = "n.data"
     elif type == "cid":
         sort = "c.id"
+    elif type == "cdid":
+        sort = "c.did"
+    elif type == "codid":
+        sort = "c.odid"
     elif type == "cord":
         sort = "c.ord"
     elif type == "cusn":
