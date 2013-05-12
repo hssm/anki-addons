@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-# Version: 1.3
+# Version: 1.4
 # See github page to report issues or contribute:
 # https://github.com/hssm/anki-addons
 
-import time
+from PyQt4 import QtGui
 
-from PyQt4 import QtCore, QtGui
-
-from aqt import mw
 from aqt import *
 from aqt.browser import DataModel
 from aqt.forms.browser import Ui_Dialog
@@ -105,15 +102,22 @@ def mySetupUi(self, mw):
     # Save state on toggle
     mw.connect(self.arToggleButton, SIGNAL("stateChanged(int)"), onChecked)
     
-    # Remove existing elements from the grid layout
-    while self.gridLayout.count():
-        self.gridLayout.takeAt(0)
+    # Add our items to the right of the search box. We do this by moving
+    # every widget out of the gridlayout and into a new list. We simply
+    # add our stuff in the new list in the right place before moving them
+    # back to gridlayout.
+    n_items = self.gridLayout.count()
+    items= []
+    for i in range(0, n_items):
+        item = self.gridLayout.itemAt(i).widget()
+        items.append(item)
+        if item == self.searchEdit:
+            items.append(self.arToggleButton)
+            items.append(self.arToggleLabel)
     
-    # Put them back in in the order that we want, plus our own
-    self.gridLayout.addWidget(self.searchEdit, 0, 0, 1, 1)
-    self.gridLayout.addWidget(self.arToggleButton, 0, 1, 1, 1)
-    self.gridLayout.addWidget(self.arToggleLabel, 0, 2, 1, 1)
-    self.gridLayout.addWidget(self.searchButton, 0, 3, 1, 1)
+    for i, item in enumerate(items):
+        self.gridLayout.addWidget(item, 0, i, 1, 1)
+        
     
 def onChecked(state):
     """Save the checked state in Anki's configuration."""
