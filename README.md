@@ -30,4 +30,4 @@ Useful fields include:
 - Total answer time
 - Tags
 
-The majority of the other fields will serve no use for just about everybody, except for maybe add-on author.s
+The majority of the other fields will serve no use for just about everybody, except for maybe add-on authors.
