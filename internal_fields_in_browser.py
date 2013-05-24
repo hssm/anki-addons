@@ -3,10 +3,9 @@
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
-from operator import itemgetter
 import time
 
-from aqt import mw
+from aqt import *
 from aqt.browser import DataModel, Browser
 from anki.hooks import wrap
 from anki.find import Finder
@@ -16,17 +15,26 @@ CONF_KEY_CUSTOM_COLS = 'ifib_activeCols'
 origColumnData = DataModel.columnData
 orig_order = Finder._order
 
-_customColumns = [# Notes
-                ('nid', "Note ID"),
+# NOTE: custom columns are prefixed with c if they are fetched from a
+# card object and n if fetched from a note object.
+
+# Likely the only useful ones
+_goodColumns = [('cfirst', "First review"),
+                ('clast', "Last review"),
+                ('cavtime', "Time (Average)"),
+                ('ctottime', "Time (Total)"),
+                ('ntags', "Tags")]
+# Notes
+_noteColumns = [('nid', "Note ID"),
                 ('nguid', "Note guid"),
                 ('nmid', "Note mid"),
                 ('nusn', "Note usn"),
-                ('ntags', "Note tags"),
                 ('nfields', "Note fields"),
                 ('nflags', "Note flags"),
-                ('ndata', "Note data"),
-                # Cards
-                ('cid', "Card ID"),
+                ('ndata', "Note data")]
+
+# Cards
+_cardColumns = [('cid', "Card ID"),
                 ('cdid', "Card did"),
                 ('codid', "Card odid"),
                 ('cord', "Card order"),
@@ -35,11 +43,11 @@ _customColumns = [# Notes
                 ('cqueue', "Card queue"),
                 ('cleft', "Card left"),
                 ('codue', "Card odue"),
-                ('cflags', "Card flags"),
-                ('cfirst', "First review"),
-                ('clast', "Latest review"),
-                ('catime', "Answer Time"),
-                ]
+                ('cflags', "Card flags")]
+
+# Combine them for easier iteration later
+_customColumns = _goodColumns + _noteColumns + _cardColumns
+
 
 def myColumnData(self, index):
     returned = origColumnData(self, index)
@@ -50,8 +58,32 @@ def myColumnData(self, index):
     type = self.columnType(col)
     c = self.getCard(index)
     n = c.note()
+    if type == "cfirst":
+        first = mw.col.db.scalar(
+            "select min(id) from revlog where cid = ?", c.id)
+        if first:
+            first = first / 1000
+            return time.strftime("%Y-%m-%d", time.localtime(first))
+    elif type == "clast":
+        last = mw.col.db.scalar(
+            "select max(id) from revlog where cid = ?", c.id)
+        if last:
+            last = last / 1000
+            return time.strftime("%Y-%m-%d", time.localtime(last))
+    elif type == "cavtime":
+        atime = mw.col.db.scalar(
+            "select avg(time) from revlog where cid = ?", c.id)
+        if atime:
+            return str(round(atime / 1000, 1)) + "s"
+    elif type =="ctottime":
+        atime = mw.col.db.scalar(
+            "select sum(time) from revlog where cid = ?", c.id)
+        if atime:
+            return str(round(atime / 1000, 1)) + "s"
+    elif type == "ntags":
+        return " ".join(str(tag) for tag in n.tags)
     # Notes
-    if type == "nid":
+    elif type == "nid":
         return n.id
     elif type == "nguid":
         return n.guid
@@ -59,8 +91,6 @@ def myColumnData(self, index):
         return n.mid
     elif type == "nusn":
         return n.usn
-    elif type == "ntags":
-        return " ".join(str(tag) for tag in n.tags)
     elif type == "nfields":
         return " ".join(str(field) for field in n.fields)
     elif type == "nflags":
@@ -88,24 +118,7 @@ def myColumnData(self, index):
         return c.odue
     elif type == "cflags":
         return c.flags
-    elif type == "cfirst":
-        first = mw.col.db.scalar(
-            "select min(id) from revlog where cid = ?", c.id)
-        if first:
-            first = first / 1000
-            return time.strftime("%Y-%m-%d", time.localtime(first))
-    elif type == "clast":
-        last = mw.col.db.scalar(
-            "select max(id) from revlog where cid = ?", c.id)
-        if last:
-            last = last / 1000
-            return time.strftime("%Y-%m-%d", time.localtime(last))
-    elif type == "catime":
-        atime = mw.col.db.scalar(
-            "select avg(time) from revlog where cid = ?", c.id)
-        if atime:
-            return round(atime / 1000)
-            
+
 
 def my_order(self, order):
     if not order:
@@ -117,16 +130,24 @@ def my_order(self, order):
     type = self.col.conf['sortType']
     sort = None
     
-    if type == "nid":
+    if type == "cfirst":
+        sort = "(select min(id) from revlog where cid = c.id)"
+    elif type == "clast":
+        sort = "(select max(id) from revlog where cid = c.id)"
+    elif type == "cavtime":
+        sort = "(select avg(time) from revlog where cid = c.id)"
+    elif type == "ctottime":
+        sort = "(select sum(time) from revlog where cid = c.id)"
+    elif type == "ntags":
+        sort = "n.tags"
+    elif type == "nid":
         sort = "n.id"
-    if type == "nguid":
-        return "", False # nahh not gonna sort this
+    elif type == "nguid":
+        return "", False # Doesn't make sense to sort this
     elif type == "nmid":
         sort = "n.mid"
     elif type == "nusn":
         sort = "n.usn"
-    elif type == "ntags":
-        sort = "n.tags"
     elif type == "nfields":
         return "", False # or this
     elif type == "nflags":
@@ -153,12 +174,6 @@ def my_order(self, order):
         sort = "c.odue"
     elif type == "cflags":
         sort = "c.flags"
-    elif type == "cfirst":
-        sort = "(select min(id) from revlog where cid = c.id)"
-    elif type == "clast":
-        sort = "(select max(id) from revlog where cid = c.id)"
-    elif type == "catime":
-        sort = "(select avg(time) from revlog where cid = c.id)"
 
     if not sort:
         return orig_order(self, order)
@@ -167,7 +182,36 @@ def my_order(self, order):
 def mySetupColumns(self):
     self.columns.extend(_customColumns)
     # The custom fields will appear at the bottom of the list.
+
+def myOnHeaderContext(self, pos):
+    gpos = self.form.tableView.mapToGlobal(pos)
     
+    m = QMenu()
+    # Notes and cards each get a sub-menu
+    nm = QMenu("Notes")
+    cm = QMenu("Cards")
+        
+    def addCheckableAction(menu, type, name):
+        a = menu.addAction(name)
+        a.setCheckable(True)
+        a.setChecked(type in self.model.activeCols)
+        a.connect(a, SIGNAL("toggled(bool)"),
+                  lambda b, t=type: self.toggleField(t))
+    
+    for item in self.columns:
+        type, name = item
+        if item in _noteColumns:
+            addCheckableAction(nm, type, name)
+        elif item in _cardColumns:
+            addCheckableAction(cm, type, name)
+        else:
+            addCheckableAction(m, type, name)
+        
+    m.addMenu(nm)
+    m.addMenu(cm)
+    m.exec_(gpos)
+
+
 def myDataModel__init__(self, browser):
     
     # Load any custom columns that were saved in a previous session.
@@ -192,16 +236,17 @@ def myDataModel__init__(self, browser):
     if not validSortType:
         mw.col.conf['sortType'] = 'noteCrt'
 
+
 def myCloseEvent(self, evt):
     """Remove our columns from self.model.activeCols when closing.
     Otherwise, Anki would save them to the equivalent in the collection
     conf, which might have ill effects elsewhere. We save our custom
     types in a custom conf item instead."""
     
+    #sortType = mw.col.conf['sortType']
     # TODO: should we avoid saving the sortType? I will leave it in until
     # a problem with doing so is evident.
-    #sortType = mw.col.conf['sortType']
-    
+        
     customCols = []
     origCols = []
     
@@ -217,10 +262,11 @@ def myCloseEvent(self, evt):
 
     self.model.activeCols = origCols
     mw.col.conf[CONF_KEY_CUSTOM_COLS] = customCols
-                
+
 
 DataModel.columnData = myColumnData
 DataModel.__init__ = wrap(DataModel.__init__, myDataModel__init__)
 Browser.setupColumns = wrap(Browser.setupColumns, mySetupColumns)
+Browser.onHeaderContext = myOnHeaderContext
 Browser.closeEvent = wrap(Browser.closeEvent, myCloseEvent, "before")
 Finder._order = my_order
