@@ -3,11 +3,10 @@
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
-from aqt import *
-
 from anki.hooks import wrap
-import aqt.editor
+from aqt import *
 from aqt.editor import Editor
+import aqt.editor
 
 # The approach here is to still let the old setFields function run as usual,
 # but copy the HTML it generates into our own table. We do this instead of
@@ -25,7 +24,7 @@ function setColumnCount(n) {
 }
 
 var origSetFields = setFields;
-var mySetFields = function setFields(fields, focusTo) {
+var mySetFields = function (fields, focusTo) {
     origSetFields(fields, focusTo);
         
     // In the original, there is a row for each field's name followed by a row
@@ -45,6 +44,14 @@ var mySetFields = function setFields(fields, focusTo) {
     $("#fields tr:nth-child(even) td").each(function () {
         // Make them evenly-spaced
         $(this).attr('width', 100/columnCount+'%%');
+                
+        // Make the div inside expand to fill the whole cell. It looks
+        // ugly if there are a bunch that are different sizes.
+        $('div', this).css('display', 'inline-table');
+        $('div', this).css('-webkit-appearance', 'textarea');
+        $('div', this).css('height', '100%%');
+        $('div', this).css('width', '100%%');
+        
         fEdit.push(this.outerHTML);
     });
     
