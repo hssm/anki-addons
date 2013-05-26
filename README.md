@@ -28,15 +28,11 @@ The majority of the other fields will serve no use for just about everybody, exc
 
 
 ##Multi-Column Note Editor###
-[Link to add-on](#https://ankiweb.net/shared/info/3491767031)
+[Link to add-on](https://ankiweb.net/shared/info/3491767031)
 
 ![Multi-column editor](https://raw.github.com/hssm/anki-addons/master/docs/multicolumn_browser.png)
 
-Use multiple columns in the note editor. The editor is present in multiple parts of Anki and all instances of it will be affected. [Here is a screenshot](http://i.imgur.com/WhEuig7.png) for an example. The number of columns is set to 2 in code; you will need to edit the add-on to change it for now.
-
-TODO: 
-- Need to make number of columns configurable from the UI.
-- Should column width be fixed or automatically resized?
+Use multiple columns in the note editor. The editor is present in multiple parts of Anki and all instances of it will be affected. [Here is a screenshot](http://i.imgur.com/WhEuig7.png) for an example. You can easily change the number of columns shown using the *Columns* field added by the add-on.
 
 
 ##Strip Arabic Diacritics###
