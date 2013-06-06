@@ -228,7 +228,7 @@ def myDataModel__init__(self, browser):
     
     for custCol in custCols:
         for type, name in _customColumns:
-            if custCol == type:
+            if custCol == type and custCol not in self.activeCols:
                 self.activeCols.append(custCol)
             if sortType == type:
                 validSortType = True
