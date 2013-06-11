@@ -28,30 +28,36 @@ var mySetFields = function (fields, focusTo) {
     origSetFields(fields, focusTo);
         
     // In the original, there is a row for each field's name followed by a row
-    // with that field's edit box. What we do is make an array of each name
-    // and an array of each field, then lay them out again with n number of
-    // elements in each row, where n is columnCount.
+    // with that field's edit box. I.e.:
+    // <tr><td>...Field name...</td></tr>
+    // <tr><td>...Edit box...</td></tr>
+    // What we do is copy the content (inside <tr>) of the field name rows into
+    // an array, then copy the content of the edit box rows into a separate
+    // array, then lay them out again with n number of elements in each row,
+    // where n = columnCount.
        
     var fNames = new Array();
     var fEdit = new Array();
     
-    // These are the names on top of the edit boxes.
+    // Content of each field name row
     $("#fields tr:nth-child(odd) td").each(function () {
         fNames.push(this.outerHTML);
     });
     
-    // And these are the edit boxes themselves.
+    // Content of each edit box row
     $("#fields tr:nth-child(even) td").each(function () {
         // Make them evenly-spaced
         $(this).attr('width', 100/columnCount+'%%');
-                
+                        
         // Make the div inside expand to fill the whole cell. It looks
         // ugly if there are a bunch that are different sizes.
-        $('div', this).css('display', 'inline-table');
-        $('div', this).css('-webkit-appearance', 'textarea');
-        $('div', this).css('height', '100%%');
-        $('div', this).css('width', '100%%');
-        
+        $('div', this).css({
+           'display' : 'inline-table',
+           '-webkit-appearance' : 'textarea',
+           'height' : '100%%',
+           'width' : '100%%',
+        });
+                
         fEdit.push(this.outerHTML);
     });
     
@@ -92,7 +98,6 @@ def onColumnCountChanged(editor, count):
     editor.loadNote()
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
-
     count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
 
     # TODO: These don't deserve their own row. Maybe place it next to the
@@ -103,7 +108,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     n.connect(n,
               SIGNAL("valueChanged(int)"),
               lambda value: onColumnCountChanged(self, value))
-    n.setMaximum(20)
+    n.setMaximum(15)
     n.setMinimum(1)
     self.outerLayout.addWidget(l)
     self.outerLayout.addWidget(n)
