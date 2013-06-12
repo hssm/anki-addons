@@ -40,18 +40,18 @@ var mySetFields = function (fields, focusTo) {
     var fEdit = new Array();
     
     // Content of each field name row
-    $("#fields tr:nth-child(odd) td").each(function () {
+    $("#fields tr:nth-child(odd) td:first-child").each(function () {
         fNames.push(this.outerHTML);
     });
     
     // Content of each edit box row
-    $("#fields tr:nth-child(even) td").each(function () {
+    $("#fields tr:nth-child(even) td:first-child").each(function () {
         // Make them evenly-spaced
         $(this).attr('width', 100/columnCount+'%%');
                         
         // Make the div inside expand to fill the whole cell. It looks
         // ugly if there are a bunch that are different sizes.
-        $('div', this).css({
+        $('div:first', this).css({
            'display' : 'inline-table',
            '-webkit-appearance' : 'textarea',
            'height' : '100%%',
