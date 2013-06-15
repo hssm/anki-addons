@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.5
+# Version: 1.5_beta
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
@@ -45,9 +45,11 @@ _cardColumns = [('cid', "Card ID"),
                 ('codue', "Card odue"),
                 ('cflags', "Card flags")]
 
-# Combine them for easier iteration later
-_customColumns = _goodColumns + _noteColumns + _cardColumns
+# Later on, we combine all custom columns for easier iteration.
+_customColumns = []
 
+# Dictionary of field names to figure out if we can handle a column
+_allFields = {}
 
 def myColumnData(self, index):
     returned = origColumnData(self, index)
@@ -58,7 +60,12 @@ def myColumnData(self, index):
     type = self.columnType(col)
     c = self.getCard(index)
     n = c.note()
-    if type == "cfirst":
+    
+    if type in _allFields:
+        field = _allFields[type]
+        if field in c.note().keys():
+            return c.note()[field]
+    elif type == "cfirst":
         first = mw.col.db.scalar(
             "select min(id) from revlog where cid = ?", c.id)
         if first:
@@ -92,7 +99,7 @@ def myColumnData(self, index):
     elif type == "nusn":
         return n.usn
     elif type == "nfields":
-        return " ".join(unicode(field) for field in n.fields)
+        return u"\u25A0".join(unicode(field) for field in n.fields)
     elif type == "nflags":
         return n.flags
     elif type == "ndata":
@@ -129,8 +136,11 @@ def my_order(self, order):
     # use deck default
     type = self.col.conf['sortType']
     sort = None
-    
-    if type == "cfirst":
+        
+    if type in _allFields:
+        fldName = _allFields[type]
+        sort = "(select valueForField(id, '%s', flds) from notes where id = c.nid)" % fldName
+    elif type == "cfirst":
         sort = "(select min(id) from revlog where cid = c.id)"
     elif type == "clast":
         sort = "(select max(id) from revlog where cid = c.id)"
@@ -180,14 +190,31 @@ def my_order(self, order):
     return " order by " + sort, self.col.conf['sortBackwards']
 
 def mySetupColumns(self):
+    global _customColumns
+    global _allFields
+
+    # Create a new SQL function that we can use in our queries.
+    mw.col.db._db.create_function("valueForField", 3, valueForField)
+
+    # Build a list of all (note) fields in the collection. No dupes.
+    fields = []
+    for model in mw.col.models.all():
+        for field in model['flds']:
+            type = "_field_"+field['name']
+            name = field['name']
+            if (type, name) not in fields:
+                fields.append((type, name))
+                _allFields[type] = name
+    
+    _customColumns = _goodColumns + _noteColumns + _cardColumns + fields
     self.columns.extend(_customColumns)
-    # The custom fields will appear at the bottom of the list.
 
 def myOnHeaderContext(self, pos):
     gpos = self.form.tableView.mapToGlobal(pos)
     
     m = QMenu()
-    # Notes and cards each get a sub-menu
+    # Sub-menus
+    fm = QMenu("Fields")
     nm = QMenu("Notes")
     cm = QMenu("Cards")
         
@@ -204,18 +231,20 @@ def myOnHeaderContext(self, pos):
             addCheckableAction(nm, type, name)
         elif item in _cardColumns:
             addCheckableAction(cm, type, name)
+        elif item[0] in _allFields:
+            addCheckableAction(fm, type, name)
         else:
             addCheckableAction(m, type, name)
-        
+    
+    m.addMenu(fm)
     m.addMenu(nm)
     m.addMenu(cm)
     m.exec_(gpos)
 
 
 def myDataModel__init__(self, browser):
-    
-    # Load any custom columns that were saved in a previous session.
-    #
+    """Load any custom columns that were saved in a previous session."""
+        
     # First, we make sure those columns actually exist. If not, we ignore
     # them. This is to guard against the event that we remove or rename a
     # column in a later version. Also make sure the sortType is set to a
@@ -262,6 +291,15 @@ def myCloseEvent(self, evt):
 
     self.model.activeCols = origCols
     mw.col.conf[CONF_KEY_CUSTOM_COLS] = customCols
+
+
+def valueForField(nid, fldName, flds):
+    note = mw.col.getNote(nid)
+    if fldName in note.keys():
+        index = note._fieldOrd(fldName)
+        return anki.utils.splitFields(flds)[index]
+    else:
+        return
 
 
 DataModel.columnData = myColumnData
