@@ -92,7 +92,7 @@ def myColumnData(self, index):
     elif type == "nusn":
         return n.usn
     elif type == "nfields":
-        return " ".join(str(field) for field in n.fields)
+        return " ".join(unicode(field) for field in n.fields)
     elif type == "nflags":
         return n.flags
     elif type == "ndata":
