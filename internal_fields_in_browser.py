@@ -139,7 +139,7 @@ def my_order(self, order):
         
     if type in _allFields:
         fldName = _allFields[type]
-        sort = "(select valueForField(id, '%s') from notes where id = c.nid)" % fldName
+        sort = "(select valueForField(mid, flds, '%s') from notes where id = c.nid)" % fldName
     elif type == "cfirst":
         sort = "(select min(id) from revlog where cid = c.id)"
     elif type == "clast":
@@ -194,7 +194,7 @@ def mySetupColumns(self):
     global _allFields
 
     # Create a new SQL function that we can use in our queries.
-    mw.col.db._db.create_function("valueForField", 2, valueForField)
+    mw.col.db._db.create_function("valueForField", 3, valueForField)
 
     # Build a list of all (note) fields in the collection. No dupes.
     fields = []
@@ -293,13 +293,12 @@ def myCloseEvent(self, evt):
     mw.col.conf[CONF_KEY_CUSTOM_COLS] = customCols
 
 
-def valueForField(nid, fldName):
-    note = mw.col.getNote(nid)
-    if fldName in note.keys():
-        index = note._fieldOrd(fldName)
-        return note.fields[index]
-    else:
-        return
+def valueForField(mid, flds, fldName):
+    fields = anki.utils.splitFields(flds)
+    model = mw.col.models.get(mid)
+    for f in model['flds']:
+        if f['name'] == fldName:
+            return fields[f['ord']]
 
 
 DataModel.columnData = myColumnData
