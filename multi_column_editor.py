@@ -35,59 +35,65 @@ var mySetFields = function (fields, focusTo) {
     // an array, then copy the content of the edit box rows into a separate
     // array, then lay them out again with n number of elements in each row,
     // where n = columnCount.
-       
+    
     var fNames = new Array();
     var fEdit = new Array();
     
-    // Content of each field name row
+    // Every cell in the table has a fixed width
+    $("#fields tr td:first-child").each(function () {
+        $(this).css({
+            'width' : 100/columnCount+'%%',
+            'height': '100%%'
+        });
+    });
+    
+    // Copy the content of each field name row
     $("#fields tr:nth-child(odd) td:first-child").each(function () {
         fNames.push(this.outerHTML);
     });
     
-    // Content of each edit box row
+    // Copy the content of each edit box row
     $("#fields tr:nth-child(even) td:first-child").each(function () {
-        // Make them evenly-spaced
-        $(this).attr('width', 100/columnCount+'%%');
-                        
-        // Make the div inside expand to fill the whole cell. It looks
-        // ugly if there are a bunch that are different sizes.
-        $('div:first', this).css({
-           'display' : 'inline-table',
-           '-webkit-appearance' : 'textarea',
-           'height' : '100%%',
-           'width' : '100%%',
+       
+        $(this).css({
+            'vertical-align' : 'top',
         });
-                
+        
+        // The content div itself
+        $('div:first', this).css({
+            /* nothing yet? */
+        });
+        
         fEdit.push(this.outerHTML);
     });
     
     txt = ""
-    for (var i = 0; i < fNames.length; ) {
+    for (var i = 0; i < fNames.length;) {
         // A row of names
         txt += "<tr>"
         for (var j = 0; j < columnCount; j++) {
-            var td = fNames[i+j];
+            var td = fNames[i + j];
             if (td === undefined) {
                 break;
             }
             txt += td;
         }
         txt += "</tr>"
-        
+    
         // A row of edit boxes
         txt += "<tr>"
         for (var j = 0; j < columnCount; j++) {
-            var td = fEdit[i+j];
+            var td = fEdit[i + j];
             if (td === undefined) {
                 break;
             }
             txt += td;
-        } 
+        }
         txt += "</tr>"
-        
+    
         i += columnCount;
     }
-    $("#fields").html("<table cellpadding=0 width=100%%>"+txt+"</table>");
+    $("#fields").html("<table cellpadding=0 width=100%%>" + txt + "</table>");
 };
 var setFields = mySetFields;
 </script>
