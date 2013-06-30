@@ -8,25 +8,41 @@ from aqt import *
 from aqt.editor import Editor
 import aqt.editor
 
-# The approach here is to still let the old setFields function run as usual,
-# but copy the HTML it generates into our own table. We do this instead of
-# overriding the entire function for future-proofing; the content of the
-# tables could easily change.
 
 CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 
 aqt.editor._html = aqt.editor._html + """
 <script>
+(function($) {
+    $.fn.changeElementType = function(newType) {
+        var attrs = {};
+    
+        $.each(this[0].attributes, function(idx, attr) {
+            attrs[attr.nodeName] = attr.nodeValue;
+        });
+    
+        this.replaceWith(function() {
+            return $("<" + newType + "/>", attrs).append($(this).contents());
+        });
+    };
+})(jQuery);
+
+
 var columnCount = 1;
 
 function setColumnCount(n) {
     columnCount = n;
 }
 
-var origSetFields = setFields;
-var mySetFields = function (fields, focusTo) {
-    origSetFields(fields, focusTo);
-        
+var makeColumns = function(event) {
+
+    // If the inserted object is not at the top level of the "fields" object,
+    // ignore it. We're assuming that anything added to the "fields" table is
+    // the entirety of the content of the table itself.
+    if ($(event.target).parent()[0].id !== "fields") {
+        return;
+    }
+
     // In the original, there is a row for each field's name followed by a row
     // with that field's edit box. I.e.:
     // <tr><td>...Field name...</td></tr>
@@ -36,41 +52,30 @@ var mySetFields = function (fields, focusTo) {
     // array, then lay them out again with n number of elements in each row,
     // where n = columnCount.
     
-    var fNames = new Array();
-    var fEdit = new Array();
+    var fNames = [];
+    var fEdit = [];
     
-    // Every cell in the table has a fixed width
-    $("#fields tr td:first-child").each(function () {
-        $(this).css({
-            'width' : 100/columnCount+'%%',
-            'height': '100%%'
-        });
-    });
-    
-    // Copy the content of each field name row
-    $("#fields tr:nth-child(odd) td:first-child").each(function () {
-        fNames.push(this.outerHTML);
-    });
-    
-    // Copy the content of each edit box row
-    $("#fields tr:nth-child(even) td:first-child").each(function () {
-       
-        $(this).css({
-            'vertical-align' : 'top',
-        });
         
-        // The content div itself
-        $('div:first', this).css({
-            /* nothing yet? */
-        });
-        
-        fEdit.push(this.outerHTML);
+    $("#fields tr:nth-child(odd) > td").each(function (){
+        $(this).changeElementType("span");
     });
     
-    txt = ""
+    $("#fields tr:nth-child(even) > td").each(function (){
+        $(this).changeElementType("span");
+    });
+    
+    $("#fields tr:nth-child(odd)").each(function (){
+        fNames.push("<td class='mceCell' width=" + 100/columnCount+"%%>" + this.innerHTML + "</td>");
+    });
+    
+    $("#fields tr:nth-child(even)").each(function (){
+        fEdit.push("<td class='mceCell' width=" + 100/columnCount+"%%>" + this.innerHTML + "</td>");
+    });
+    
+    txt = "";
     for (var i = 0; i < fNames.length;) {
         // A row of names
-        txt += "<tr>"
+        txt += "<tr>";
         for (var j = 0; j < columnCount; j++) {
             var td = fNames[i + j];
             if (td === undefined) {
@@ -78,10 +83,10 @@ var mySetFields = function (fields, focusTo) {
             }
             txt += td;
         }
-        txt += "</tr>"
-    
+        txt += "</tr>";
+        
         // A row of edit boxes
-        txt += "<tr>"
+        txt += "<tr>";
         for (var j = 0; j < columnCount; j++) {
             var td = fEdit[i + j];
             if (td === undefined) {
@@ -89,20 +94,26 @@ var mySetFields = function (fields, focusTo) {
             }
             txt += td;
         }
-        txt += "</tr>"
-    
+        txt += "</tr>";
         i += columnCount;
     }
+
+    // Unbing then rebind to avoid infinite loop
+    $('#fields').unbind('DOMNodeInserted')
     $("#fields").html("<table cellpadding=0 width=100%%>" + txt + "</table>");
+    $('#fields').bind('DOMNodeInserted', makeColumns);
 };
-var setFields = mySetFields;
+// Restructure the table after it is populated
+$('#fields').bind('DOMNodeInserted', makeColumns);
 </script>
 """
 
 def onColumnCountChanged(editor, count):
     mw.pm.profile[CONF_KEY_COLUMN_COUNT] = count
+    setEditorColumnCount(editor)
     editor.loadNote()
 
+# TODO: Correctly set initial count on load
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
 
@@ -120,9 +131,8 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.outerLayout.addWidget(n)
 
 
-def myLoadNote(self):
+def setEditorColumnCount(editor):
     count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
-    self.web.eval("setColumnCount(%d);" % count)
+    editor.web.eval("setColumnCount(%d);" % count)
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
-Editor.loadNote = wrap(Editor.loadNote, myLoadNote, pos="before")
