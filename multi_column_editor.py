@@ -13,7 +13,11 @@ CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 
 aqt.editor._html = aqt.editor._html + """
 <script>
-$('html > head').append('<style>.mceCell > * { display: table-cell; }</style>');
+s  = '<style>'
+s += '.mceCell > * { display: table-cell; vertical-align: middle; }'
+s += '</style>'
+
+$('html > head').append(s);
 
 (function($) {
     $.fn.changeElementType = function(newType) {
