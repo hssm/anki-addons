@@ -3,7 +3,7 @@
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
-from anki.hooks import wrap
+from anki.hooks import wrap, addHook
 from aqt import *
 from aqt.editor import Editor
 import aqt.editor
@@ -29,8 +29,6 @@ $('html > head').append('<style>.mceCell > * { display: table-cell; }</style>');
     };
 })(jQuery);
 
-
-var columnCount = 1;
 
 function setColumnCount(n) {
     columnCount = n;
@@ -109,15 +107,15 @@ var makeColumns = function(event) {
 };
 // Restructure the table after it is populated
 $('#fields').bind('DOMNodeInserted', makeColumns);
+
 </script>
 """
 
 def onColumnCountChanged(editor, count):
     mw.pm.profile[CONF_KEY_COLUMN_COUNT] = count
-    setEditorColumnCount(editor)
+    editor.web.eval("setColumnCount(%d);" % count)
     editor.loadNote()
 
-# TODO: Correctly set initial count on load
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
 
@@ -135,8 +133,16 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.outerLayout.addWidget(n)
 
 
-def setEditorColumnCount(editor):
-    count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
-    editor.web.eval("setColumnCount(%d);" % count)
+# Set the initial column count on load
+loaded = False
+def onProfileLoad():
+    global loaded
+    if not loaded:
+        count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
+        print "Initial column count: ", count
+        s = "<script>var columnCount =" + str(count) + ";</script>"
+        aqt.editor._html += s
+        loaded = True
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
+addHook("profileLoaded", onProfileLoad)
