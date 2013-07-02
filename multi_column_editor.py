@@ -13,6 +13,8 @@ CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 
 aqt.editor._html = aqt.editor._html + """
 <script>
+$('html > head').append('<style>.mceCell > * { display: table-cell; }</style>');
+
 (function($) {
     $.fn.changeElementType = function(newType) {
         var attrs = {};
@@ -54,8 +56,7 @@ var makeColumns = function(event) {
     
     var fNames = [];
     var fEdit = [];
-    
-        
+
     $("#fields tr:nth-child(odd) > td").each(function (){
         $(this).changeElementType("span");
     });
@@ -65,11 +66,11 @@ var makeColumns = function(event) {
     });
     
     $("#fields tr:nth-child(odd)").each(function (){
-        fNames.push("<td class='mceCell' width=" + 100/columnCount+"%%>" + this.innerHTML + "</td>");
+        fNames.push("<td class='mceCell'>" + this.innerHTML + "</td>");
     });
     
     $("#fields tr:nth-child(even)").each(function (){
-        fEdit.push("<td class='mceCell' width=" + 100/columnCount+"%%>" + this.innerHTML + "</td>");
+        fEdit.push("<td class='mceCell'>" + this.innerHTML + "</td>");
     });
     
     txt = "";
@@ -95,13 +96,16 @@ var makeColumns = function(event) {
             txt += td;
         }
         txt += "</tr>";
+        
         i += columnCount;
     }
 
-    // Unbing then rebind to avoid infinite loop
+    // Unbind then rebind to avoid infinite loop
     $('#fields').unbind('DOMNodeInserted')
     $("#fields").html("<table cellpadding=0 width=100%%>" + txt + "</table>");
     $('#fields').bind('DOMNodeInserted', makeColumns);
+        
+    $(".mceCell").css({'width' : (100/columnCount)+'%%'});
 };
 // Restructure the table after it is populated
 $('#fields').bind('DOMNodeInserted', makeColumns);
