@@ -50,9 +50,6 @@ function makeColumns(event) {
     // Inject global variables for us to use from python.
     py.run("mceTrigger");
     
-    var fNames = [];
-    var fEdit = [];
-
     // Hack to make Frozen Fields look right.
     if (ffFix) {
         // Apply fixed width to first <td>, which is a Frozen Fields cell,
@@ -61,19 +58,28 @@ function makeColumns(event) {
             $(this).attr("width", "28px");
         });
     }
-
-    $("#fields tr:nth-child(odd)").each(function (){
+    
+    s = '<style>';
+    s += '.mceTable { table-layout: fixed; height: 100%%; width: 100%%;}'
+    s += '.mceTable td .field { height: 100%%; }'
+    s += '</style>';
+    $('html > head').append(s);
+    
+    var fNames = [];
+    var fEdit = [];
+    
+    $("#fields tr:nth-child(odd)").each(function () {
         fNames.push(this.innerHTML);
     });
     
-    $("#fields tr:nth-child(even)").each(function (){
+    $("#fields tr:nth-child(even)").each(function () {
         fEdit.push(this.innerHTML);
     });
     
     txt = "";
     for (var i = 0; i < fNames.length;) {
         // A row of names
-        txt += "<tr class='mceRow'>";
+        txt += "<tr class='mceRow mceNameRow'>";
         for (var j = 0; j < columnCount; j++) {
             var td = fNames[i + j];
             if (td === undefined) {
@@ -82,9 +88,9 @@ function makeColumns(event) {
             txt += td;
         }
         txt += "</tr>";
-        
+    
         // A row of edit boxes
-        txt += "<tr class='mceRow'>";
+        txt += "<tr class='mceRow mceEditRow'>";
         for (var j = 0; j < columnCount; j++) {
             var td = fEdit[i + j];
             if (td === undefined) {
@@ -93,14 +99,13 @@ function makeColumns(event) {
             txt += td;
         }
         txt += "</tr>";
+    
         i += columnCount;
     }
     
     // Unbind then rebind to avoid infinite loop
     $('#fields').unbind('DOMNodeInserted')
-    $("#fields").html(
-        "<table style='table-layout: fixed;' width=100%%>" + txt + "</table>"
-    );
+    $("#fields").html("<table class='mceTable'>" + txt + "</table>");
     $('#fields').bind('DOMNodeInserted', makeColumns);
 }
 
