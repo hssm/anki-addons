@@ -9,7 +9,7 @@ from aqt.editor import Editor
 import aqt.editor
 
 
-# A Sensible maximum number of columns we are able to set
+# A sensible maximum number of columns we are able to set
 MAX_COLUMNS = 18
 
 # Settings key to remember column count
@@ -114,13 +114,26 @@ $('#fields').bind('DOMNodeInserted', makeColumns);
 </script>
 """
 
+def getKeyForContext(editor):
+    """Get a key that takes into account the parent window type.
+    
+    This allows us to have a different key for different contexts,
+    since we may want different column counts in the browser vs
+    note adder, etc.
+    """
+    
+    return "%s-%s" % (CONF_KEY_COLUMN_COUNT,
+                     editor.parentWindow.__class__.__name__)
+
+
 def onColumnCountChanged(editor, count):
     "Save column count to settings and re-draw with new count."
-    mw.pm.profile[CONF_KEY_COLUMN_COUNT] = count
+    mw.pm.profile[getKeyForContext(editor)] = count
     editor.loadNote()
 
+
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
-    count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
+    count = mw.pm.profile.get(getKeyForContext(self), 1)
 
     # TODO: These don't deserve their own row. Maybe place it next to the
     # tag editor (if I ever figure out how).
@@ -151,10 +164,11 @@ def myBridge(self, str):
     them.
     """
     if str == "mceTrigger":
-        count = mw.pm.profile.get(CONF_KEY_COLUMN_COUNT, 1)
+        count = mw.pm.profile.get(getKeyForContext(self), 1)
         self.web.eval("setColumnCount(%d);" % count)
         if ffFix:
             self.web.eval("setFFFix(true)")
-        
+
+
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
 Editor.bridge = wrap(Editor.bridge, myBridge, 'before')
