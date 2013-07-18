@@ -148,8 +148,12 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     spinbox.setMaximum(MAX_COLUMNS)
     spinbox.setMinimum(1)
 
-    # Place it to the right of the tag editor. Fits snugly.
-    self.tags.parentWidget().layout().addLayout(hbox, 1, 2)
+    # We will place the column count editor next to the tags widget.
+    pLayout = self.tags.parentWidget().layout()
+    # Get the indices of the tags widget
+    (rIdx, cIdx, r, c) = pLayout.getItemPosition(pLayout.indexOf(self.tags))
+    # Place ours on the same row, to its right.
+    pLayout.addLayout(hbox, rIdx, cIdx+1)
     
     # If the user has the Frozen Fields add-on installed, tweak the
     # layout a bit to make it look right.
