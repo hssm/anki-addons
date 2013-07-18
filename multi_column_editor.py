@@ -133,12 +133,12 @@ def onColumnCountChanged(editor, count):
 
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
-    vbox = QHBoxLayout()
+    hbox = QHBoxLayout()
     label = QLabel("Columns:", self.widget)
     spinbox = QSpinBox(self.widget)
     
-    vbox.addWidget(label)
-    vbox.addWidget(spinbox)
+    hbox.addWidget(label)
+    hbox.addWidget(spinbox)
     
     count = mw.pm.profile.get(getKeyForContext(self), 1)
     spinbox.setValue(count)
@@ -149,7 +149,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     spinbox.setMinimum(1)
 
     # Place it to the right of the tag editor. Fits snugly.
-    self.tags.parentWidget().layout().addLayout(vbox, 1, 2)
+    self.tags.parentWidget().layout().addLayout(hbox, 1, 2)
     
     # If the user has the Frozen Fields add-on installed, tweak the
     # layout a bit to make it look right.
