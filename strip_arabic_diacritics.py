@@ -46,31 +46,27 @@ def stripArabic(txt):
     return txt.translate(translationTable)
 
 
-def mySearch(self, txt, reset=True):
-    """Overriding browser.py -> DataModel.Search. Do a search using custom
-    methods if the Arabic diacritics checkbox is checked."""
-
-    if reset:
-        self.beginReset()
     
+def mySearch(self, txt, reset, _old):
+    """Do a search using custom methods if the Arabic diacritics
+    checkbox is checked."""
+    if not reset:
+        reset = True
+       
     # NOTE: Only override the finder function on the click of the browser's
     # "search" button since this function is used elsewhere. We restore
     # it to the original one after we do our search.
-    origFindText = Finder._findText
     if self.browser.form.arToggleButton.isChecked():
+        orig = Finder._findText
         Finder._findText = myFindText
         txt = unicode(txt)
         txt = stripArabic(txt)
+        _old(self, txt, reset)
+        Finder._findText = orig    
+        return
+    else:
+        _old(self, txt, reset)
 
-    self.cards = []
-    self.cards = self.col.findCards(txt, order=True)
-
-    # Put back original function after search
-    Finder._findText = origFindText
-    
-    if reset:
-        self.endReset()
-    
 
 def myFindText(self, val, args):
     """Build a custom SQL query to invoke a function to strip Arabic
@@ -123,5 +119,5 @@ def onChecked(state):
     """Save the checked state in Anki's configuration."""
     mw.col.conf[CONF_KEY_CHECKED] = state
 
-Ui_Dialog.setupUi= wrap(Ui_Dialog.setupUi, mySetupUi)
-DataModel.search = mySearch
+Ui_Dialog.setupUi = wrap(Ui_Dialog.setupUi, mySetupUi)
+DataModel.search = wrap (DataModel.search, mySearch, "around")
