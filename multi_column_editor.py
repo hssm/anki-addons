@@ -49,7 +49,7 @@ function makeColumns(event) {
 
     // Inject global variables for us to use from python.
     py.run("mceTrigger");
-    
+
     // Hack to make Frozen Fields look right.
     if (ffFix) {
         // Apply fixed width to first <td>, which is a Frozen Fields cell,
@@ -115,15 +115,16 @@ $('#fields').bind('DOMNodeInserted', makeColumns);
 """
 
 def getKeyForContext(editor):
-    """Get a key that takes into account the parent window type.
+    """Get a key that takes into account the parent window type and
+    the note type.
     
     This allows us to have a different key for different contexts,
     since we may want different column counts in the browser vs
-    note adder, etc.
+    note adder, or for different note types.
     """
-    
-    return "%s-%s" % (CONF_KEY_COLUMN_COUNT,
-                     editor.parentWindow.__class__.__name__)
+    return "%s-%s-%s" % (CONF_KEY_COLUMN_COUNT,
+                     editor.parentWindow.__class__.__name__,
+                     editor.note.mid)
 
 
 def onColumnCountChanged(editor, count):
@@ -131,22 +132,18 @@ def onColumnCountChanged(editor, count):
     mw.pm.profile[getKeyForContext(editor)] = count
     editor.loadNote()
 
-
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
+    self.ccSpin = QSpinBox(self.widget)
     hbox = QHBoxLayout()
     label = QLabel("Columns:", self.widget)
-    spinbox = QSpinBox(self.widget)
-    
     hbox.addWidget(label)
-    hbox.addWidget(spinbox)
+    hbox.addWidget(self.ccSpin)
     
-    count = mw.pm.profile.get(getKeyForContext(self), 1)
-    spinbox.setValue(count)
-    spinbox.connect(spinbox,
+    self.ccSpin.setMinimum(1)
+    self.ccSpin.setMaximum(MAX_COLUMNS)
+    self.ccSpin.connect(self.ccSpin,
               SIGNAL("valueChanged(int)"),
               lambda value: onColumnCountChanged(self, value))
-    spinbox.setMaximum(MAX_COLUMNS)
-    spinbox.setMinimum(1)
 
     # We will place the column count editor next to the tags widget.
     pLayout = self.tags.parentWidget().layout()
@@ -173,6 +170,9 @@ def myBridge(self, str):
     if str == "mceTrigger":
         count = mw.pm.profile.get(getKeyForContext(self), 1)
         self.web.eval("setColumnCount(%d);" % count)
+        self.ccSpin.blockSignals(True)
+        self.ccSpin.setValue(count)
+        self.ccSpin.blockSignals(False)
         if ffFix:
             self.web.eval("setFFFix(true)")
 
