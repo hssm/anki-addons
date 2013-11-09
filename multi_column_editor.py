@@ -17,6 +17,10 @@ CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 # Keys for layout order setting
 VERTICAL_KEY = 'mcekey_vertical_order'
 HORIZONTAL_KEY = 'mcekey_horizontal_order'
+# Keys with context
+VKEY = None
+HKEY = None
+
 
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
@@ -24,8 +28,14 @@ ffFix = False
 aqt.editor._html = aqt.editor._html + """
 <script>
 var columnCount = 1;
+var verticalOrder = false;
+
 function setColumnCount(n) {
     columnCount = n;
+}
+
+function setVerticalOrder(b) {
+    verticalOrder = b;
 }
 
 var ffFix = false; // Frozen Fields fix
@@ -78,6 +88,22 @@ function makeColumns(event) {
     $("#fields tr:nth-child(even)").each(function () {
         fEdit.push(this.innerHTML);
     });
+    
+    if (verticalOrder) {
+        var fvNames = [];
+        var fvEdit = []
+        rows = Math.ceil(fNames.length/columnCount);
+        k = 0;
+        for (var c = 0; c < columnCount; c++) {
+            for (var r = 0; r < rows; r++) {
+                fvNames[k] = fNames[r*columnCount+c];
+                fvEdit[k] = fEdit[r*columnCount+c];
+                k++;
+            }
+        }
+        fNames = fvNames;
+        fEdit = fvEdit;
+    }
     
     txt = "";
     for (var i = 0; i < fNames.length;) {
@@ -138,7 +164,7 @@ def onColumnCountChanged(editor, count):
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.ccSpin = QSpinBox(self.widget)
-    b = self._addButton("cc_config", lambda: onConfig(self), text=u"▾",
+    b = self._addButton("cc_config", lambda: onConfigClick(self), text=u"▾",
                         canDisable=False)
     hbox = QHBoxLayout()
     hbox.setSpacing(0)
@@ -159,7 +185,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     (rIdx, cIdx, r, c) = pLayout.getItemPosition(pLayout.indexOf(self.tags))
     # Place ours on the same row, to its right.
     pLayout.addLayout(hbox, rIdx, cIdx+1)
-    
+        
     # If the user has the Frozen Fields add-on installed, tweak the
     # layout a bit to make it look right.
     global ffFix
@@ -169,6 +195,14 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     except:
         pass
 
+def myLoadNote(self):
+    if self.note:
+        global VKEY, HKEY
+        VKEY  = getKeyForContext(self) + VERTICAL_KEY
+        HKEY = getKeyForContext(self) + HORIZONTAL_KEY
+        # Make sure horizontal is checked as a default
+        if not mw.pm.profile.get(VKEY):
+            onCheck(self, HKEY)
 
 def myBridge(self, str):
     """
@@ -181,41 +215,44 @@ def myBridge(self, str):
         self.ccSpin.blockSignals(True)
         self.ccSpin.setValue(count)
         self.ccSpin.blockSignals(False)
+        vertical = mw.pm.profile.get(VKEY, False)
+        self.web.eval("setVerticalOrder(%s)" % ("true" if vertical else "false"))
         if ffFix:
             self.web.eval("setFFFix(true)")
 
 
-def onConfig(self):
+def onConfigClick(self):
     m = QMenu(self.mw)
     def addCheckableAction(menu, key, text):
         a = menu.addAction(text)
         a.setCheckable(True)
-        a.setChecked(key in mw.pm.profile)
+        a.setChecked(mw.pm.profile.get(key, False))
         a.connect(a, SIGNAL("toggled(bool)"),
                   lambda b, k=key: onCheck(self, k))
     
-    addCheckableAction(m, getKeyForContext(self) + VERTICAL_KEY, "Vertical order")
-    addCheckableAction(m, getKeyForContext(self) + HORIZONTAL_KEY, "Horizontal order")
+    addCheckableAction(m, VKEY, "Vertical order")
+    addCheckableAction(m, HKEY, "Horizontal order")
     m.addSeparator()
 
     for fld, val in self.note.items():
         key = getKeyForContext(self) + fld
         addCheckableAction(m, key, fld)
-        
+
     m.exec_(QCursor.pos())
 
 
 def onCheck(self, key):
-    c = getKeyForContext(self)
-    if key == c + VERTICAL_KEY:
-        print key
-    elif key == c + HORIZONTAL_KEY:
-        print key
+    if key == VKEY:
+        mw.pm.profile[HKEY] = False
+        mw.pm.profile[VKEY] = True
+    elif key == HKEY:
+        mw.pm.profile[HKEY] = True
+        mw.pm.profile[VKEY] = False
     else:
         print key
-    
-    mw.pm.profile[key] = not mw.pm.profile.get(key)
+        mw.pm.profile[key] = not mw.pm.profile.get(key)
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
+Editor.loadNote = wrap(Editor.loadNote, myLoadNote, "before")
 Editor.bridge = wrap(Editor.bridge, myBridge, 'before')
