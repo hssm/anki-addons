@@ -3,17 +3,20 @@
 # See github page to report issues or to contribute:
 # https://github.com/hssm/anki-addons
 
-from anki.hooks import wrap, addHook
+from anki.hooks import wrap
 from aqt import *
 from aqt.editor import Editor
 import aqt.editor
-
 
 # A sensible maximum number of columns we are able to set
 MAX_COLUMNS = 18
 
 # Settings key to remember column count
 CONF_KEY_COLUMN_COUNT = 'multi_column_count'
+
+# Keys for layout order setting
+VERTICAL_KEY = 'mcekey_vertical_order'
+HORIZONTAL_KEY = 'mcekey_horizontal_order'
 
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
@@ -132,12 +135,17 @@ def onColumnCountChanged(editor, count):
     mw.pm.profile[getKeyForContext(editor)] = count
     editor.loadNote()
 
+
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.ccSpin = QSpinBox(self.widget)
+    b = self._addButton("cc_config", lambda: onConfig(self), text=u"▾",
+                        canDisable=False)
     hbox = QHBoxLayout()
+    hbox.setSpacing(0)
     label = QLabel("Columns:", self.widget)
     hbox.addWidget(label)
     hbox.addWidget(self.ccSpin)
+    hbox.addWidget(b)
     
     self.ccSpin.setMinimum(1)
     self.ccSpin.setMaximum(MAX_COLUMNS)
@@ -175,6 +183,38 @@ def myBridge(self, str):
         self.ccSpin.blockSignals(False)
         if ffFix:
             self.web.eval("setFFFix(true)")
+
+
+def onConfig(self):
+    m = QMenu(self.mw)
+    def addCheckableAction(menu, key, text):
+        a = menu.addAction(text)
+        a.setCheckable(True)
+        a.setChecked(key in mw.pm.profile)
+        a.connect(a, SIGNAL("toggled(bool)"),
+                  lambda b, k=key: onCheck(self, k))
+    
+    addCheckableAction(m, getKeyForContext(self) + VERTICAL_KEY, "Vertical order")
+    addCheckableAction(m, getKeyForContext(self) + HORIZONTAL_KEY, "Horizontal order")
+    m.addSeparator()
+
+    for fld, val in self.note.items():
+        key = getKeyForContext(self) + fld
+        addCheckableAction(m, key, fld)
+        
+    m.exec_(QCursor.pos())
+
+
+def onCheck(self, key):
+    c = getKeyForContext(self)
+    if key == c + VERTICAL_KEY:
+        print key
+    elif key == c + HORIZONTAL_KEY:
+        print key
+    else:
+        print key
+    
+    mw.pm.profile[key] = not mw.pm.profile.get(key)
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
