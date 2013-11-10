@@ -14,13 +14,6 @@ MAX_COLUMNS = 18
 # Settings key to remember column count
 CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 
-# Keys for layout order setting
-VERTICAL_KEY = 'mcekey_vertical_order'
-HORIZONTAL_KEY = 'mcekey_horizontal_order'
-# Keys with context
-VKEY = None
-HKEY = None
-
 
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
@@ -30,7 +23,6 @@ aqt.editor._html = aqt.editor._html + """
 var columnCount = 1;
 singleColspan = columnCount;
 singleLine = [];
-var verticalOrder = false;
 
 
 function setColumnCount(n) {
@@ -39,10 +31,6 @@ function setColumnCount(n) {
 
 function setSingleLine(field) {
     singleLine.push(field);
-}
-
-function setVerticalOrder(b) {
-    verticalOrder = b;
 }
 
 var ffFix = false; // Frozen Fields fix
@@ -103,22 +91,6 @@ function makeColumns(event) {
         i += 2;
     }
 
-    if (verticalOrder) {
-        var fvNames = [];
-        var fvEdit = []
-        rows = Math.ceil(fNames.length/columnCount);
-        k = 0;
-        for (var c = 0; c < columnCount; c++) {
-            for (var r = 0; r < rows && (r*columnCount)+c < fNames.length; r++) {
-                fvNames[k] = fNames[r*columnCount+c];
-                fvEdit[k] = fEdit[r*columnCount+c];
-                k++;
-            }
-        }
-        fNames = fvNames;
-        fEdit = fvEdit;
-    }
-    
     txt = "";
     txt += "<tr>";
     // Pre-populate empty cells to influence column size
@@ -237,21 +209,11 @@ def myBridge(self, str):
     them.
     """
     if str == "mceTrigger":
-        global VKEY, HKEY
-        VKEY  = getKeyForContext(self) + VERTICAL_KEY
-        HKEY = getKeyForContext(self) + HORIZONTAL_KEY
-        # Make sure horizontal is checked as a default
-        if not mw.pm.profile.get(VKEY):
-            mw.pm.profile[HKEY] = True
-            mw.pm.profile[VKEY] = False
-        
         count = mw.pm.profile.get(getKeyForContext(self), 1)
         self.web.eval("setColumnCount(%d);" % count)
         self.ccSpin.blockSignals(True)
         self.ccSpin.setValue(count)
         self.ccSpin.blockSignals(False)
-        vertical = mw.pm.profile.get(VKEY, False)
-        self.web.eval("setVerticalOrder(%s)" % ("true" if vertical else "false"))
         for fld, val in self.note.items():
             if mw.pm.profile.get(getKeyForContext(self)+fld, False):
                 self.web.eval("setSingleLine('%s');" % fld)
@@ -267,11 +229,12 @@ def onConfigClick(self):
         a.setChecked(mw.pm.profile.get(key, False))
         a.connect(a, SIGNAL("toggled(bool)"),
                   lambda b, k=key: onCheck(self, k))
-    
-    addCheckableAction(m, VKEY, "Vertical order")
-    addCheckableAction(m, HKEY, "Horizontal order")
-    m.addSeparator()
 
+    # Descriptive title thing
+    a = QAction(u"―Single Row―", m)
+    a.setEnabled(False)
+    m.addAction(a)
+    
     for fld, val in self.note.items():
         key = getKeyForContext(self) + fld
         addCheckableAction(m, key, fld)
@@ -280,15 +243,7 @@ def onConfigClick(self):
 
 
 def onCheck(self, key):
-    if key == VKEY:
-        mw.pm.profile[HKEY] = False
-        mw.pm.profile[VKEY] = True
-    elif key == HKEY:
-        mw.pm.profile[HKEY] = True
-        mw.pm.profile[VKEY] = False
-    else:
-        mw.pm.profile[key] = not mw.pm.profile.get(key)
-
+    mw.pm.profile[key] = not mw.pm.profile.get(key)
     self.loadNote()
 
 
