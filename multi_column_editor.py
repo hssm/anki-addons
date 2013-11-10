@@ -28,10 +28,17 @@ ffFix = False
 aqt.editor._html = aqt.editor._html + """
 <script>
 var columnCount = 1;
+singleColspan = columnCount;
+singleLine = [];
 var verticalOrder = false;
+
 
 function setColumnCount(n) {
     columnCount = n;
+}
+
+function setSingleLine(field) {
+    singleLine.push(field);
 }
 
 function setVerticalOrder(b) {
@@ -57,11 +64,12 @@ function makeColumns(event) {
     // with that field's edit box. I.e.:
     // <tr><td>...Field name...</td></tr>
     // <tr><td>...Edit box...</td></tr>
-    // We copy the content of each row into its own group's array and then
+    // We copy each row into its own group's array and then
     // write out the table again using our own ordering.
 
-    // Inject global variables for us to use from python.
-    py.run("mceTrigger");
+    singleLine = []
+    py.run("mceTrigger"); // Inject global variables for us to use from python.
+    singleColspan = columnCount;
 
     // Hack to make Frozen Fields look right.
     if (ffFix) {
@@ -70,32 +78,38 @@ function makeColumns(event) {
         $("#fields td:first-child").each(function (){
             $(this).attr("width", "28px");
         });
+        singleColspan = (columnCount*2)-1;
     }
     
     s = '<style>';
-    s += '.mceTable { table-layout: fixed; height: 1%%; width: 100%%;}'
-    s += '.mceTable td .field { height: 100%%; }'
+    s += '.mceTable { table-layout: fixed; height: 1%%; width: 100%%;}';
+    s += '.mceTable td .field { height: 100%%; }';
     s += '</style>';
     $('html > head').append(s);
     
     var fNames = [];
     var fEdit = [];
     
-    $("#fields tr:nth-child(odd)").each(function () {
-        fNames.push(this.innerHTML);
-    });
-    
-    $("#fields tr:nth-child(even)").each(function () {
-        fEdit.push(this.innerHTML);
-    });
-    
+    // Create our two lists and tag those that need their own row.
+    var rows = $('#fields tr');
+    for(var i=0; i<rows.length;){
+        fldName = $('.fname', rows[i])[0].innerHTML;
+        if (singleLine.indexOf(fldName) >= 0) {
+            $(rows[i]).addClass("mceSingle");
+            $(rows[i+1]).addClass("mceSingle");
+        }
+        fNames.push(rows[i]);
+        fEdit.push(rows[i+1]);
+        i += 2;
+    }
+
     if (verticalOrder) {
         var fvNames = [];
         var fvEdit = []
         rows = Math.ceil(fNames.length/columnCount);
         k = 0;
         for (var c = 0; c < columnCount; c++) {
-            for (var r = 0; r < rows; r++) {
+            for (var r = 0; r < rows && (r*columnCount)+c < fNames.length; r++) {
                 fvNames[k] = fNames[r*columnCount+c];
                 fvEdit[k] = fEdit[r*columnCount+c];
                 k++;
@@ -106,30 +120,51 @@ function makeColumns(event) {
     }
     
     txt = "";
+    txt += "<tr>";
+    // Pre-populate empty cells to influence column size
+    for (var i = 0; i < columnCount; i++) {
+        if (ffFix) {
+            txt += "<td width=28px></td>";
+        }
+        txt += "<td></td>";
+    }
+    txt += "</tr>";
+
     for (var i = 0; i < fNames.length;) {
-        // A row of names
-        txt += "<tr class='mceRow mceNameRow'>";
-        for (var j = 0; j < columnCount; j++) {
-            var td = fNames[i + j];
-            if (td === undefined) {
-                break;
-            }
-            txt += td;
-        }
-        txt += "</tr>";
+        // Lookahead for single-line fields
+        target = columnCount;
+        for (var j = 0; j < target && i+j < fNames.length; j++) {
+            nTd = fNames[i+j];
+            eTd = fEdit[i+j];
     
-        // A row of edit boxes
-        txt += "<tr class='mceRow mceEditRow'>";
-        for (var j = 0; j < columnCount; j++) {
-            var td = fEdit[i + j];
-            if (td === undefined) {
-                break;
+            if ($(nTd).hasClass("mceSingle")) {
+                $('.fname', nTd).attr("colspan", singleColspan);
+                $('td[width^=100]', eTd).attr("colspan", singleColspan); // hacky selector. need a class
+                txt += "<tr class='mceRow mceNameRow'>" + nTd.innerHTML + "</tr>";
+                txt += "<tr class='mceRow mceEditRow'>" + eTd.innerHTML + "</tr>";
+                fNames[i+j] = "skipme";
+                fEdit[i+j] = "skipme";
+                target++;
             }
-            txt += td;
         }
-        txt += "</tr>";
-    
-        i += columnCount;
+        
+        nTxt = "<tr class='mceRow mceNameRow'>";
+        eTxt = "<tr class='mceRow mceEditRow'>";
+        target = columnCount;
+        for (var j = 0; j < target && i+j < fNames.length; j++) {
+            var nTd = fNames[i+j];
+            var eTd = fEdit[i+j];
+            if (nTd === "skipme") {
+                target++;
+                continue;
+            }
+            nTxt += nTd.innerHTML;
+            eTxt += eTd.innerHTML;
+        }
+        nTxt += "</tr>";
+        eTxt += "</tr>";
+        i += target;
+        txt += nTxt + eTxt;
     }
     
     // Unbind then rebind to avoid infinite loop
@@ -143,7 +178,7 @@ $('#fields').bind('DOMNodeInserted', makeColumns);
 </script>
 """
 
-def getKeyForContext(editor):
+def getKeyForContext(self):
     """Get a key that takes into account the parent window type and
     the note type.
     
@@ -152,14 +187,14 @@ def getKeyForContext(editor):
     note adder, or for different note types.
     """
     return "%s-%s-%s" % (CONF_KEY_COLUMN_COUNT,
-                     editor.parentWindow.__class__.__name__,
-                     editor.note.mid)
+                     self.parentWindow.__class__.__name__,
+                     self.note.mid)
 
 
-def onColumnCountChanged(editor, count):
+def onColumnCountChanged(self, count):
     "Save column count to settings and re-draw with new count."
-    mw.pm.profile[getKeyForContext(editor)] = count
-    editor.loadNote()
+    mw.pm.profile[getKeyForContext(self)] = count
+    self.loadNote()
 
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
@@ -195,14 +230,6 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     except:
         pass
 
-def myLoadNote(self):
-    if self.note:
-        global VKEY, HKEY
-        VKEY  = getKeyForContext(self) + VERTICAL_KEY
-        HKEY = getKeyForContext(self) + HORIZONTAL_KEY
-        # Make sure horizontal is checked as a default
-        if not mw.pm.profile.get(VKEY):
-            onCheck(self, HKEY)
 
 def myBridge(self, str):
     """
@@ -210,6 +237,14 @@ def myBridge(self, str):
     them.
     """
     if str == "mceTrigger":
+        global VKEY, HKEY
+        VKEY  = getKeyForContext(self) + VERTICAL_KEY
+        HKEY = getKeyForContext(self) + HORIZONTAL_KEY
+        # Make sure horizontal is checked as a default
+        if not mw.pm.profile.get(VKEY):
+            mw.pm.profile[HKEY] = True
+            mw.pm.profile[VKEY] = False
+        
         count = mw.pm.profile.get(getKeyForContext(self), 1)
         self.web.eval("setColumnCount(%d);" % count)
         self.ccSpin.blockSignals(True)
@@ -217,6 +252,9 @@ def myBridge(self, str):
         self.ccSpin.blockSignals(False)
         vertical = mw.pm.profile.get(VKEY, False)
         self.web.eval("setVerticalOrder(%s)" % ("true" if vertical else "false"))
+        for fld, val in self.note.items():
+            if mw.pm.profile.get(getKeyForContext(self)+fld, False):
+                self.web.eval("setSingleLine('%s');" % fld)
         if ffFix:
             self.web.eval("setFFFix(true)")
 
@@ -249,10 +287,10 @@ def onCheck(self, key):
         mw.pm.profile[HKEY] = True
         mw.pm.profile[VKEY] = False
     else:
-        print key
         mw.pm.profile[key] = not mw.pm.profile.get(key)
+
+    self.loadNote()
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
-Editor.loadNote = wrap(Editor.loadNote, myLoadNote, "before")
 Editor.bridge = wrap(Editor.bridge, myBridge, 'before')
