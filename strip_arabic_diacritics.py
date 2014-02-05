@@ -36,7 +36,18 @@ u'\u08E6', u'\u08F6', u'\u0651', u'\uFE7D', u'\uFE7C', u'\uFC63', u'\u0652',
 u'\uFE7F', u'\uFE7E', u'\u0653', u'\u0654', u'\u0655', u'\u065F', u'\u0656',
 u'\u0657', u'\u0658', u'\u0659', u'\u065A', u'\u065B', u'\u065C', u'\u065D',
 u'\u065E', u'\u08F7', u'\u08F8', u'\u08FD', u'\u08FB', u'\u08FC', u'\u08F9',
-u'\u08FA', u'\u0670']
+u'\u08FA', u'\u0670',
+
+# Hebrew Diacritics
+u'\u0591', u'\u0592', u'\u0593', u'\u0594', u'\u0595', u'\u0596', u'\u0597', 
+u'\u0598', u'\u0599', u'\u059A', u'\u059B', u'\u059C', u'\u059D', u'\u059E',
+u'\u059F', u'\u05A0', u'\u05A1', u'\u05A2', u'\u05A3', u'\u05A4', u'\u05A5', 
+u'\u05A6', u'\u05A7', u'\u05A8', u'\u05A9', u'\u05AA', u'\u05AB', u'\u05AC', 
+u'\u05AD', u'\u05AE', u'\u05AF', u'\u05BD', u'\u05BE', u'\u05C0', u'\u05C3', 
+u'\u05C4', u'\u05C5', u'\u05C6', u'\u05F3', u'\u05F4', u'\u05B0', u'\u05B1', 
+u'\u05B2', u'\u05B3', u'\u05B4', u'\u05B5', u'\u05B6', u'\u05B7', u'\u05B8', 
+u'\u05C7', u'\u05B9', u'\u05BA', u'\u05BB', u'\u05C2', u'\u05C1', u'\u05BC', 
+u'\u05BF']
 
 
 translationTable = dict.fromkeys(map(ord, ignorables), None)
@@ -90,7 +101,7 @@ def mySetupUi(self, mw):
 
     # Our UI stuff
     self.arToggleButton = QtGui.QCheckBox(self.widget)
-    self.arToggleLabel = QtGui.QLabel("Strip Arabic\n Diacritics")
+    self.arToggleLabel = QtGui.QLabel("Strip\n Diacritics")
     
     # Initial checked state is what we had saved previously
     self.arToggleButton.setCheckState(mw.col.conf.get(CONF_KEY_CHECKED, 0))
