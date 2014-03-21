@@ -3,10 +3,14 @@ This is a repository for my small Anki add-ons. Larger add-ons will get their ow
 All code in this repository is licensed under GPLv3.
 
 Add-on list:
+- [Media Import](#media-import)
 - [Multi-Column Note Editor](#multi-column-note-editor)
-- [Strip Arabic Diacritics](#strip-arabic-diacritics)
+- [Strip Arabic/Hebrew Diacritics](#strip-arabic-diacritics)
 
 ---
+
+##Media Import###
+Work-in-progress.
 
 ##Multi-Column Note Editor###
 [Link to add-on](https://ankiweb.net/shared/info/3491767031)
@@ -19,9 +23,9 @@ If you have any fields that take up a lot of space, you can configure them to ta
 ![Multi-column editor single row](https://raw.github.com/hssm/anki-addons/master/docs/multicolumn_browser_single_row.png)
 
 
-##Strip Arabic Diacritics###
+##Strip Arabic and Hebrew Diacritics###
 [Link to add-on](https://ankiweb.net/shared/info/1924690148)
 
-![Arabic diacritics](https://raw.github.com/hssm/anki-addons/master/docs/ar_diacritics.png "Strip Arabic diacritics in card browser")
+![Arabic/Hebrew diacritics](https://raw.github.com/hssm/anki-addons/master/docs/ar_diacritics.png "Strip Arabic/Hebrew diacritics in card browser")
 
-Ignore "optional" diacritical marks in Arabic text when searching in the card browser and match only against the base characters. This allows you to enter words without any vocalizations but still find them in your deck if they do use them. Since Arabic learning materials typically do use vocalizations (which can become quite convoluted), this feature can be very convenient for a student of Arabic using Anki.
+Ignore "optional" diacritical marks in Arabic or Hebrew text when searching in the card browser and match only against the base characters. This allows you to enter words without any vocalizations but still find them in your deck if they do use them. Since learning materials typically do use vocalizations (which can become quite convoluted), this feature can be very convenient for a student of Arabic or Hebrew using Anki.
