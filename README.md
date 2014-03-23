@@ -3,14 +3,10 @@ This is a repository for my small Anki add-ons. Larger add-ons will get their ow
 All code in this repository is licensed under GPLv3.
 
 Add-on list:
-- [Media Import](#media-import)
 - [Multi-Column Note Editor](#multi-column-note-editor)
 - [Strip Arabic/Hebrew Diacritics](#strip-arabic-diacritics)
 
 ---
-
-##Media Import###
-Work-in-progress.
 
 ##Multi-Column Note Editor###
 [Link to add-on](https://ankiweb.net/shared/info/3491767031)
