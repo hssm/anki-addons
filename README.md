@@ -19,9 +19,9 @@ If you have any fields that take up a lot of space, you can configure them to ta
 ![Multi-column editor single row](https://raw.github.com/hssm/anki-addons/master/docs/multicolumn_browser_single_row.png)
 
 
-##Strip Arabic and Hebrew Diacritics###
+##Ignore accents in browser search###
 [Link to add-on](https://ankiweb.net/shared/info/1924690148)
 
-![Arabic/Hebrew diacritics](https://raw.github.com/hssm/anki-addons/master/docs/ar_diacritics.png "Strip Arabic/Hebrew diacritics in card browser")
+![Ignore accents](https://raw.github.com/hssm/anki-addons/master/docs/ar_diacritics.png "Ignore diacritics in browser search")
 
-Ignore "optional" diacritical marks in Arabic or Hebrew text when searching in the card browser and match only against the base characters. This allows you to enter words without any vocalizations but still find them in your deck if they do use them. Since learning materials typically do use vocalizations (which can become quite convoluted), this feature can be very convenient for a student of Arabic or Hebrew using Anki.
+Ignore accents and diacritical marks used by various languages when searching in the card browser and match only against the base characters. This allows you to enter only the base characters in the browser search bar even if your notes have the words written with the marks included.
