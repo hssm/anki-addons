@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.6
+# Version: 1.7
 # See github page to report issues or contribute:
 # https://github.com/hssm/anki-addons
 
@@ -13,7 +13,6 @@ from anki.hooks import wrap
 from anki.find import Finder
 
 CONF_KEY_CHECKED = 'strip_comb_checked'
-#CONF_KEY_CHECKED = 'strip_ar_diac_checked'
 
 def stripCombining(txt):
     "Return txt with all combining characters removed."
