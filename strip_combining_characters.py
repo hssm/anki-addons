@@ -4,7 +4,6 @@
 # https://github.com/hssm/anki-addons
 
 import unicodedata
-from PyQt4 import QtGui
 
 from aqt import *
 from aqt.browser import DataModel
@@ -32,7 +31,6 @@ def mySearch(self, txt, reset, _old):
     if self.browser.form.scToggleButton.isChecked():
         orig = Finder._findText
         Finder._findText = myFindText
-        txt = unicode(txt)
         txt = stripCombining(txt)
         _old(self, txt, reset)
         Finder._findText = orig
@@ -44,7 +42,7 @@ def mySearch(self, txt, reset, _old):
 def myFindText(self, val, args):
     """Build a custom SQL query to invoke a function to strip combining
     characters from the search space."""
-    
+
     val = val.replace("*", "%")
     args.append("%"+val+"%")
     args.append("%"+val+"%")
@@ -61,14 +59,14 @@ def mySetupUi(self, mw):
     mw.col.db._db.create_function("stripCombining", 1, stripCombining)
 
     # Our UI stuff
-    self.scToggleButton = QtGui.QCheckBox(self.widget)
-    self.scToggleLabel = QtGui.QLabel(" Ignore\nAccents")
+    self.scToggleButton = QCheckBox(self.widget)
+    self.scToggleLabel = QLabel(" Ignore\nAccents")
     
     # Restore checked state
     self.scToggleButton.setCheckState(mw.col.conf.get(CONF_KEY_CHECKED, 0))
 
     # Save state on toggle
-    mw.connect(self.scToggleButton, SIGNAL("stateChanged(int)"), onChecked)
+    self.scToggleButton.stateChanged.connect(onChecked)
     
     # Add our items to the right of the search box. We do this by moving
     # every widget out of the gridlayout and into a new list. We simply
@@ -92,4 +90,4 @@ def onChecked(state):
     mw.col.conf[CONF_KEY_CHECKED] = state
 
 Ui_Dialog.setupUi = wrap(Ui_Dialog.setupUi, mySetupUi)
-DataModel.search = wrap (DataModel.search, mySearch, "around")
+DataModel.search = wrap(DataModel.search, mySearch, "around")
