@@ -19,12 +19,10 @@ def stripCombining(txt):
     return "".join([c for c in norm if not unicodedata.combining(c)])
 
     
-def mySearch(self, txt, reset, _old):
+def mySearch(self, txt, _old):
     """Perform a search using a custom search function if the stripping
     checkbox is checked."""
-    if not reset:
-        reset = True
-       
+
     # NOTE: We override the finder function on the click of the browser's
     # "search" button but restore the original version after the search
     # is done since this function is used elsewhere.
@@ -32,11 +30,11 @@ def mySearch(self, txt, reset, _old):
         orig = Finder._findText
         Finder._findText = myFindText
         txt = stripCombining(txt)
-        _old(self, txt, reset)
+        _old(self, txt)
         Finder._findText = orig
         return
     else:
-        _old(self, txt, reset)
+        _old(self, txt)
 
 
 def myFindText(self, val, args):
