@@ -14,16 +14,14 @@ MAX_COLUMNS = 18
 # Settings key to remember column count
 CONF_KEY_COLUMN_COUNT = 'multi_column_count'
 
-
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
 
-aqt.editor._html = aqt.editor._html + """
+aqt.editor._html += """
 <script>
 var columnCount = 1;
 singleColspan = columnCount;
 singleLine = [];
-
 
 function setColumnCount(n) {
     columnCount = n;
@@ -56,7 +54,14 @@ function makeColumns(event) {
     // write out the table again using our own ordering.
 
     singleLine = []
-    py.run("mceTrigger"); // Inject global variables for us to use from python.
+    pycmd("mceTrigger"); // Inject global variables for us to use from python.
+}
+
+// Because of the asynchronous nature of the bridge calls, we split this method
+// into two parts, the latter of which is called from python once the variable
+// injection has completed.
+
+function makeColumns2() {
     singleColspan = columnCount;
 
     // Hack to make Frozen Fields look right.
@@ -171,8 +176,11 @@ def onColumnCountChanged(self, count):
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.ccSpin = QSpinBox(self.widget)
-    b = self._addButton("cc_config", lambda: onConfigClick(self), text=u"▾",
-                        canDisable=False)
+    b = QPushButton(u"▾")
+    b.clicked.connect(lambda: onConfigClick(self))
+    b.setFixedHeight(self.tags.height())
+    b.setFixedWidth(25)
+    b.setAutoDefault(False)
     hbox = QHBoxLayout()
     hbox.setSpacing(0)
     label = QLabel("Columns:", self.widget)
@@ -182,9 +190,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     
     self.ccSpin.setMinimum(1)
     self.ccSpin.setMaximum(MAX_COLUMNS)
-    self.ccSpin.connect(self.ccSpin,
-              SIGNAL("valueChanged(int)"),
-              lambda value: onColumnCountChanged(self, value))
+    self.ccSpin.valueChanged.connect(lambda value: onColumnCountChanged(self, value))
 
     # We will place the column count editor next to the tags widget.
     pLayout = self.tags.parentWidget().layout()
@@ -203,12 +209,12 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
         pass
 
 
-def myBridge(self, str):
+def myOnBridgeCmd(self, cmd):
     """
     Called from JavaScript to inject some values before it needs
     them.
     """
-    if str == "mceTrigger":
+    if cmd == "mceTrigger":
         count = mw.pm.profile.get(getKeyForContext(self), 1)
         self.web.eval("setColumnCount(%d);" % count)
         self.ccSpin.blockSignals(True)
@@ -219,6 +225,7 @@ def myBridge(self, str):
                 self.web.eval("setSingleLine('%s');" % fld)
         if ffFix:
             self.web.eval("setFFFix(true)")
+        self.web.eval("makeColumns2()")
 
 
 def onConfigClick(self):
@@ -227,8 +234,7 @@ def onConfigClick(self):
         a = menu.addAction(text)
         a.setCheckable(True)
         a.setChecked(mw.pm.profile.get(key, False))
-        a.connect(a, SIGNAL("toggled(bool)"),
-                  lambda b, k=key: onCheck(self, k))
+        a.toggled.connect(lambda b, k=key: onCheck(self, k))
 
     # Descriptive title thing
     a = QAction(u"―Single Row―", m)
@@ -248,4 +254,4 @@ def onCheck(self, key):
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
-Editor.bridge = wrap(Editor.bridge, myBridge, 'before')
+Editor.onBridgeCmd = wrap(Editor.onBridgeCmd, myOnBridgeCmd, 'before')
