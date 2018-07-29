@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version: 1.8
+# Version: 1.9
 # See github page to report issues or contribute:
 # https://github.com/hssm/anki-addons
 
