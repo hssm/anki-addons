@@ -73,7 +73,7 @@ def mySetupUi(self, mw):
     n_items = self.gridLayout.count()
     items= []
     for i in range(0, n_items):
-        item = self.gridLayout.itemAt(i).widget()
+        item = self.gridLayout.itemAtPosition(0, i).widget()
         items.append(item)
         if item == self.searchEdit:
             items.append(self.scToggleButton)
