@@ -9,11 +9,15 @@ from aqt.editor import Editor
 import aqt.editor
 
 # A sensible maximum number of columns we are able to set
-MAX_COLUMNS = 18
+
 
 # Settings key to remember column count
-CONF_KEY_COLUMN_COUNT = 'multi_column_count'
-
+config= mw.addonManager.getConfig(__name__)
+if config is None:
+    config=dict()
+def getConfig(self,key,defaultValue=None):
+    transferConfig(self)
+    return config.get(key,defaultValue)
 # Flag to enable hack to make Frozen Fields look normal
 ffFix = False
 
@@ -22,48 +26,38 @@ aqt.editor._html += """
 var columnCount = 1;
 singleColspan = columnCount;
 singleLine = [];
-
 function setColumnCount(n) {
     columnCount = n;
 }
-
 function setSingleLine(field) {
     singleLine.push(field);
 }
-
 var ffFix = false; // Frozen Fields fix
 function setFFFix(use) {
   ffFix = use;
 }
-
 // Event triggered when #fields is modified.
 function makeColumns(event) {
-
     // If the inserted object is not at the top level of the "fields" object,
     // ignore it. We're assuming that anything added to the "fields" table is
     // the entirety of the content of the table itself.
     if ($(event.target).parent()[0].id !== "fields") {
         return;
     }
-
     // In the original, there is a row for each field's name followed by a row
     // with that field's edit box. I.e.:
     // <tr><td>...Field name...</td></tr>
     // <tr><td>...Edit box...</td></tr>
     // We copy each row into its own group's array and then
     // write out the table again using our own ordering.
-
     singleLine = []
     pycmd("mceTrigger"); // Inject global variables for us to use from python.
 }
-
 // Because of the asynchronous nature of the bridge calls, we split this method
 // into two parts, the latter of which is called from python once the variable
 // injection has completed.
-
 function makeColumns2() {
     singleColspan = columnCount;
-
     // Hack to make Frozen Fields look right.
     if (ffFix) {
         // Apply fixed width to first <td>, which is a Frozen Fields cell,
@@ -95,7 +89,6 @@ function makeColumns2() {
         fEdit.push(rows[i+1]);
         i += 2;
     }
-
     txt = "";
     txt += "<tr>";
     // Pre-populate empty cells to influence column size
@@ -106,7 +99,6 @@ function makeColumns2() {
         txt += "<td></td>";
     }
     txt += "</tr>";
-
     for (var i = 0; i < fNames.length;) {
         // Lookahead for single-line fields
         target = columnCount;
@@ -149,13 +141,12 @@ function makeColumns2() {
     $("#fields").html("<table class='mceTable'>" + txt + "</table>");
     $('#fields').bind('DOMNodeInserted', makeColumns);
 }
-
 // Attach event to restructure the table after it is populated
 $('#fields').bind('DOMNodeInserted', makeColumns);
 </script>
 """
 
-def getKeyForContext(self):
+def getKeyForContext(self,field=None):
     """Get a key that takes into account the parent window type and
     the note type.
     
@@ -163,16 +154,22 @@ def getKeyForContext(self):
     since we may want different column counts in the browser vs
     note adder, or for different note types.
     """
-    return "%s-%s-%s" % (CONF_KEY_COLUMN_COUNT,
-                     self.parentWindow.__class__.__name__,
-                     self.note.mid)
+    key = str(self.note.mid)
+    if getConfig(self,"same config for each window",False):
+        key=f"{self.parentWindow.__class__.__name__}-{key}"
+    if field is not None:
+        key=f"{key}{field}"
+    return key
 
+def setConfig(self,key,value):
+    config[key] = value
+    mw.addonManager.writeConfig(__name__,config)
+    #print(f"Setting config[{key}] to {value}")
+    self.loadNote()
 
 def onColumnCountChanged(self, count):
     "Save column count to settings and re-draw with new count."
-    mw.pm.profile[getKeyForContext(self)] = count
-    self.loadNote()
-
+    setConfig(self,getKeyForContext(self),count)
 
 def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     self.ccSpin = QSpinBox(self.widget)
@@ -189,7 +186,7 @@ def myEditorInit(self, mw, widget, parentWindow, addMode=False):
     hbox.addWidget(b)
     
     self.ccSpin.setMinimum(1)
-    self.ccSpin.setMaximum(MAX_COLUMNS)
+    self.ccSpin.setMaximum(getConfig(self,"MAX_COLUMNS"))
     self.ccSpin.valueChanged.connect(lambda value: onColumnCountChanged(self, value))
 
     # We will place the column count editor next to the tags widget.
@@ -215,14 +212,15 @@ def myOnBridgeCmd(self, cmd):
     them.
     """
     if cmd == "mceTrigger":
-        count = mw.pm.profile.get(getKeyForContext(self), 1)
-        self.web.eval("setColumnCount(%d);" % count)
+        count = getConfig(self,getKeyForContext(self), defaultValue=1)
+        self.web.eval(f"setColumnCount({count});")
         self.ccSpin.blockSignals(True)
         self.ccSpin.setValue(count)
         self.ccSpin.blockSignals(False)
         for fld, val in self.note.items():
-            if mw.pm.profile.get(getKeyForContext(self)+fld, False):
-                self.web.eval("setSingleLine('%s');" % fld)
+            key=getKeyForContext(self,field=fld)
+            if getConfig(self,key, False):
+                self.web.eval(f"setSingleLine('{fld}');")
         if ffFix:
             self.web.eval("setFFFix(true)")
         self.web.eval("makeColumns2()")
@@ -233,7 +231,7 @@ def onConfigClick(self):
     def addCheckableAction(menu, key, text):
         a = menu.addAction(text)
         a.setCheckable(True)
-        a.setChecked(mw.pm.profile.get(key, False))
+        a.setChecked(getConfig(self,key, False))
         a.toggled.connect(lambda b, k=key: onCheck(self, k))
 
     # Descriptive title thing
@@ -242,16 +240,28 @@ def onConfigClick(self):
     m.addAction(a)
     
     for fld, val in self.note.items():
-        key = getKeyForContext(self) + fld
+        key = getKeyForContext(self,field=fld)
         addCheckableAction(m, key, fld)
 
     m.exec_(QCursor.pos())
 
 
 def onCheck(self, key):
-    mw.pm.profile[key] = not mw.pm.profile.get(key)
-    self.loadNote()
+    setConfig(self,key,not getConfig(self,key))
 
 
 Editor.__init__ = wrap(Editor.__init__, myEditorInit)
 Editor.onBridgeCmd = wrap(Editor.onBridgeCmd, myOnBridgeCmd, 'before')
+
+
+###############################################
+#The code below should be eventually be deleted. It is used only to transfer the old configuration to the new one#
+###############################################
+CONF_KEY_COLUMN_COUNT = 'multi_column_count'
+def transferConfig(self):
+  if not config.get("transfer done",False):
+    for key,value in mw.pm.profile.items():
+        if CONF_KEY_COLUMN_COUNT in key:
+            key=key.replace(f"{CONF_KEY_COLUMN_COUNT}-","")
+            setConfig(self,key,value)
+    setConfig(self,"transfer done",True)
